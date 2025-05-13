@@ -180,6 +180,8 @@ const PrimaryContent = React.memo(({ activeSection, onSectionChange }) => {
       <Castle activeSection={activeSection} scale={[2, 1.6, 2]} />
       <Flower />
       <Stairs />
+            <Orb />
+
     </>
   )
 })
