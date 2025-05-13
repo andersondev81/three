@@ -26,9 +26,9 @@ const HEARTS_ENV_MAP_PATH = "/images/studio.jpg"
 
 const usePoleMaterial = () => {
   const textures = useTexture({
-    map: "/texture/PoleColor.webp",
-    metalnessMap: "/texture/Pole_Metallic.webp",
-    roughnessMap: "/texture/Pole_Roughness.webp",
+    map: "/texture/PoleColor.avif",
+    metalnessMap: "/texture/Pole_Metallic.avif",
+    roughnessMap: "/texture/Pole_Roughness.avif",
   })
 
   const envMap = useLoader(TextureLoader, POLE_ENV_MAP_PATH)
@@ -56,8 +56,8 @@ const usePoleMaterial = () => {
 
 const useHeartsMaterial = () => {
   const textures = useTexture({
-    map: "/texture/heartColor.webp",
-    emissiveMap: "/texture/HeartPoleEmissive.webp",
+    map: "/texture/heartColor.avif",
+    emissiveMap: "/texture/HeartPoleEmissive.avif",
   })
 
   const envMap = useLoader(TextureLoader, HEARTS_ENV_MAP_PATH)
@@ -87,9 +87,9 @@ const useHeartsMaterial = () => {
 
 const useFlowersMaterial = () => {
   const textures = useTexture({
-    map: "/texture/PoleColor.webp",
-    metalnessMap: "/texture/Pole_Metallic.webp",
-    roughnessMap: "/texture/Pole_Roughness.webp",
+    map: "/texture/PoleColor.avif",
+    metalnessMap: "/texture/Pole_Metallic.avif",
+    roughnessMap: "/texture/Pole_Roughness.avif",
   })
 
   const envMap = useLoader(TextureLoader, POLE_ENV_MAP_PATH)
