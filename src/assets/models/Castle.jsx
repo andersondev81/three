@@ -1,25 +1,18 @@
 import { CameraControls, useGLTF, useTexture } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
-import { Select } from "@react-three/postprocessing"
 import { button, useControls } from "leva"
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import * as THREE from "three"
 import {
   Color,
   DoubleSide,
-  LinearFilter,
   MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   NearestFilter,
   NormalBlending,
-  VideoTexture,
 } from "three"
-import FountainParticles from "../../components/FountainParticles"
 import RotateAxis from "../../components/helpers/RotateAxis"
-import AtmIframe from "../models/AtmIframe"
-import MirrorIframe from "../models/MirrorIframe"
-import ScrollIframe from "../models/ScrolIframe"
 
 import audioManager from "./AudioManager"
 const SMALL_SCREEN_THRESHOLD = 768
@@ -31,8 +24,6 @@ function smoothCameraReturn(position, target) {
     console.error("No controls available for camera transition")
     return
   }
-
-  // console.log("Smooth transition to position:", position, "target:", target)
 
   window.controls.current.enabled = true
 
@@ -50,6 +41,7 @@ function smoothCameraReturn(position, target) {
       .catch(err => console.error("Camera transition error:", err))
   }, 50)
 }
+
 window.lastClickedPositions = {
   mirror: null,
   atm: null,
@@ -62,8 +54,6 @@ window.smoothCameraReturn = function (position, target) {
     console.error("No controls available for camera transition")
     return
   }
-
-  // console.log("Smooth transition to position:", position, "target:", target)
 
   window.controls.current.enabled = true // Important - enable controls first
 
@@ -117,7 +107,7 @@ if (window.navigationSystem) {
 const NavigationSystem = {
   // Store camera positions for each navigation element
   positions: {},
-  // NEW: Track navigation sources
+  // Track navigation sources
   navigationSources: {},
 
   // Initialize the system
@@ -129,12 +119,12 @@ const NavigationSystem = {
         audioManager.play("transition")
       },
 
-      // NEW: Track navigation source
+      // Track navigation source
       setNavigationSource: (elementId, source) => {
         NavigationSystem.navigationSources[elementId] = source
       },
 
-      // NEW: Get navigation source
+      // Get navigation source
       getNavigationSource: elementId => {
         return NavigationSystem.navigationSources[elementId] || "direct"
       },
@@ -147,7 +137,6 @@ const NavigationSystem = {
       // Clear stored positions
       clearPositions: () => {
         NavigationSystem.positions = {}
-        // NEW: Also clear navigation sources
         NavigationSystem.navigationSources = {}
       },
 
@@ -157,7 +146,6 @@ const NavigationSystem = {
           delete NavigationSystem.positions[elementId]
           console.log(`Cleared position for ${elementId}`)
         }
-        // NEW: Also clear navigation source
         if (NavigationSystem.navigationSources[elementId]) {
           delete NavigationSystem.navigationSources[elementId]
         }
@@ -313,43 +301,22 @@ const cameraConfig = {
         1.936122025766665, 1.1392067925461205, -0.9748917781012864,
         0.4694349273915467, 1.0221643232260371, -0.2668941766080719,
       ],
-
       aidatingcoach: [
-        -2.361710501463067,
-
-        1.439377184450022,
-
-        -1.1825955618240986,
-
-        -0.16561813012505458,
-
-        1.5435201358103645,
-
-        -0.07648364070439503,
+        -2.361710501463067, 1.439377184450022, -1.1825955618240986,
+        -0.16561813012505458, 1.5435201358103645, -0.07648364070439503,
       ],
-
       download: [
         1.936122025766665, 1.1392067925461205, -0.9748917781012864,
         0.4694349273915467, 1.0221643232260371, -0.2668941766080719,
       ],
-
       token: [
         1.825378771634347, 1.233948744799477, 0.9290349176726579,
         -0.1281470601284271, 0.805001281674392, -0.041739658223842804,
       ],
-
       roadmap: [
-        -2.162176291859386,
-
-        1.1693966697832865,
-
-        1.1159461725522344,
-
-        0.027134998854945094, 1.177966566007922,
-
-        -0.17952880154910716,
+        -2.162176291859386, 1.1693966697832865, 1.1159461725522344,
+        0.027134998854945094, 1.177966566007922, -0.17952880154910716,
       ],
-      // Nova posição para a visualização do iframe do ATM
       atm: [
         1.374503345207453, 1.441964012122825, 1.68925639812635,
         -0.218306792073807, 1.042078953185994, 0.860456882413919,
@@ -377,7 +344,6 @@ const cameraConfig = {
         -2.231073073487725, 1.199565269846763, 1.135322606706848,
         -0.176846154417628, 0.945515121504943, 0.032543752154573,
       ],
-      // Versão para tela pequena
       atm: [
         1.374503345207453, 1.441964012122825, 1.68925639812635,
         -0.218306792073807, 1.042078953185994, 0.860456882413919,
@@ -386,67 +352,6 @@ const cameraConfig = {
   },
 }
 
-// Improved useVideoTexture hook
-const useVideoTexture = videoPath => {
-  const [texture, setTexture] = useState(null)
-  const videoRef = useRef(null)
-  const playAttemptedRef = useRef(false)
-
-  useEffect(() => {
-    const video = document.createElement("video")
-    video.src = videoPath
-    video.loop = true
-    video.muted = true
-    video.playsInline = true
-    videoRef.current = video
-    const videoTexture = new VideoTexture(video)
-    videoTexture.minFilter = LinearFilter
-    videoTexture.magFilter = LinearFilter
-    videoTexture.flipY = true
-
-    setTexture(videoTexture)
-
-    // Cleanup
-    return () => {
-      try {
-        if (video && !video.paused) {
-          video.pause()
-        }
-        video.src = ""
-        videoRef.current = null
-      } catch (e) {
-        console.log("Video cleanup error:", e)
-      }
-      playAttemptedRef.current = false
-    }
-  }, [videoPath])
-
-  const playVideo = useCallback(() => {
-    if (!videoRef.current || playAttemptedRef.current) return
-
-    // Use um setTimeout para garantir que as chamadas de play estejam espaçadas
-    setTimeout(() => {
-      if (videoRef.current) {
-        playAttemptedRef.current = true
-        try {
-          const playPromise = videoRef.current.play()
-
-          if (playPromise !== undefined) {
-            playPromise.catch(err => {
-              console.log("Video play silently failed:", err)
-              playAttemptedRef.current = false
-            })
-          }
-        } catch (e) {
-          console.log("Video play error:", e)
-          playAttemptedRef.current = false
-        }
-      }
-    }, 100)
-  }, [])
-
-  return { texture, playVideo }
-}
 // ---------------- Castle materials ----------------
 
 // Castle Texture
@@ -493,7 +398,7 @@ const useCastleHeartMaterial = (
   metalness = 1.1,
   roughness = 0,
   emissiveIntensity = 0.3,
-  emissiveColor = "#ff0000" // Fixed: Corrected hex color from "#0000000" to "#000000"
+  emissiveColor = "#ff0000"
 ) => {
   const textures = useTexture({
     map: "/texture/castleHeart_Base_colorAO.webp",
@@ -520,13 +425,10 @@ const useCastleHeartMaterial = (
       side: DoubleSide,
       transparent: false,
       alphaTest: 0.05,
-      // Only include roughnessMap if it exists in textures
       ...(textures.roughnessMap && { roughnessMap: textures.roughnessMap }),
       roughness: roughness,
       metalness: metalness,
-      // Only include metalnessMap if it exists in textures
       ...(textures.metalnessMap && { metalnessMap: textures.metalnessMap }),
-      // Only include emissiveMap if it exists in textures
       ...(textures.emissiveMap && { emissiveMap: textures.emissiveMap }),
       emissive: new Color(emissiveColor),
       emissiveIntensity: emissiveIntensity,
@@ -548,17 +450,17 @@ const useCastleHeartMaskMaterial = () => {
   return useMemo(
     () =>
       new MeshPhysicalMaterial({
-        color: new Color("#E8B84E"), // Dourado mais quente
+        color: new Color("#E8B84E"),
         transparent: false,
         alphaTest: 0.05,
         side: DoubleSide,
         blending: NormalBlending,
-        roughness: 0.2, // Rugosidade ligeiramente aumentada
-        metalness: 1.5, // Metalness ajustado
+        roughness: 0.2,
+        metalness: 1.5,
         envMap: clouds,
-        envMapIntensity: 1.5, // Reflexos mais intensos
-        emissive: new Color("#F0D060"), // Cor de emissão mais quente
-        emissiveIntensity: 0.3, // Brilho sutil
+        envMapIntensity: 1.5,
+        emissive: new Color("#F0D060"),
+        emissiveIntensity: 0.3,
       }),
     [clouds]
   )
@@ -750,7 +652,6 @@ const useFloorMaterial = (metalness = 0, roughness = 1) => {
   return useMemo(() => {
     return new MeshStandardMaterial({
       map: textures.map,
-      // Only include maps if they exist
       ...(textures.roughnessMap && { roughnessMap: textures.roughnessMap }),
       ...(textures.metalnessMap && { metalnessMap: textures.metalnessMap }),
       roughness: 0.2,
@@ -778,26 +679,19 @@ const useMirrorFrameMaterial = () => {
   return useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
-        // BASE MATERIAL PROPERTIES
-        color: new THREE.Color("#E8B84E"), // Primary gold color (warm golden hue)
-        transparent: false, // Material is completely opaque
-        alphaTest: 0.05, // Alpha cutoff threshold (for transparency effects)
-        side: THREE.DoubleSide, // Renders both front and back faces of polygons
-        blending: THREE.NormalBlending, // Standard blending mode for transparency
-
-        // SURFACE CHARACTERISTICS
-        roughness: 0, // Perfectly smooth surface (0 = mirror-like)
-        metalness: 1, // Fully metallic material (1 = pure metal)
-
-        // ENVIRONMENT REFLECTIONS
-        envMap: clouds, // Environment map texture for realistic reflections
-        envMapIntensity: 2.2, // Reflection strength (higher = more reflective)
-
-        // EMISSIVE PROPERTIES
-        emissive: new THREE.Color("#F0D060"), // Secondary gold color for self-illumination
-        emissiveIntensity: 0.1, // Subtle glow effect intensity
+        color: new THREE.Color("#E8B84E"),
+        transparent: false,
+        alphaTest: 0.05,
+        side: THREE.DoubleSide,
+        blending: THREE.NormalBlending,
+        roughness: 0,
+        metalness: 1,
+        envMap: clouds,
+        envMapIntensity: 2.2,
+        emissive: new THREE.Color("#F0D060"),
+        emissiveIntensity: 0.1,
       }),
-    [clouds] // Adicionado como dependência
+    [clouds]
   )
 }
 
@@ -853,7 +747,7 @@ const useWingsMaterial = () => {
     roughnessMap: "/texture/wingsRoughness.webp",
   })
 
-  const clouds = useTexture("/images/bg1.jpg") // envMap
+  const clouds = useTexture("/images/bg1.jpg")
 
   useMemo(() => {
     Object.values(textures).forEach(texture => {
@@ -866,7 +760,7 @@ const useWingsMaterial = () => {
     if (clouds) {
       clouds.mapping = THREE.EquirectangularReflectionMapping
     }
-  }, [textures, clouds]) // Atualize as dependências
+  }, [textures, clouds])
 
   return useMemo(
     () =>
@@ -881,7 +775,7 @@ const useWingsMaterial = () => {
         transparent: false,
         alphaTest: 0.05,
       }),
-    [textures, clouds] // Atualize as dependências
+    [textures, clouds]
   )
 }
 
@@ -914,10 +808,8 @@ const useLogoMaterial = () => {
 
 //Decor Material
 const useDecorMaterial = () => {
-  // Load environment map texture
   const clouds = useTexture("/images/studio.jpg")
 
-  // Configure environment map
   useEffect(() => {
     if (clouds) {
       clouds.mapping = THREE.EquirectangularReflectionMapping
@@ -937,16 +829,14 @@ const useDecorMaterial = () => {
         envMap: clouds,
         envMapIntensity: 2.5,
       }),
-    [clouds] // Recreate material when envMap updates
+    [clouds]
   )
 }
 
-//Decor Material
+//Bow Material
 const useBowMaterial = () => {
-  // Load environment map texture
   const clouds = useTexture("/images/studio.jpg")
 
-  // Configure environment map
   useEffect(() => {
     if (clouds) {
       clouds.mapping = THREE.EquirectangularReflectionMapping
@@ -966,7 +856,7 @@ const useBowMaterial = () => {
         envMap: clouds,
         envMapIntensity: 1.8,
       }),
-    [clouds] // Recreate material when envMap updates
+    [clouds]
   )
 }
 
@@ -999,10 +889,8 @@ const useMirrorMaterial = () => {
 
 //Hallos Material
 const useHallosMaterial = () => {
-  // Load environment map texture
   const clouds = useTexture("/images/studio.jpg")
 
-  // Configure environment map
   useEffect(() => {
     if (clouds) {
       clouds.mapping = THREE.EquirectangularReflectionMapping
@@ -1012,27 +900,20 @@ const useHallosMaterial = () => {
   return useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
-        // Base Properties
-        color: new THREE.Color("#DABB46"), // Golden yellow color
-        transparent: false, // Opaque material
-        alphaTest: 0.05, // Alpha cutoff threshold
-        side: THREE.DoubleSide, // Render both sides of geometry
-        blending: THREE.NormalBlending, // Standard blending mode
-
-        // Surface Characteristics
-        roughness: 0.2, // Perfectly smooth surface (mirror-like)
-        metalness: 2, // Hyper-metallic effect (values >1 intensify reflections)
-
-        // Reflection Properties
-        envMap: clouds, // Environment map for realistic reflections
-        envMapIntensity: 2.5, // Strong reflection intensity
-        reflectivity: 0, // Base reflectivity coefficient
-
-        // Advanced Effects
-        emissive: new THREE.Color("#DABB46").multiplyScalar(0.1), // Subtle glow
-        emissiveIntensity: 2, // Controlled self-illumination
+        color: new THREE.Color("#DABB46"),
+        transparent: false,
+        alphaTest: 0.05,
+        side: THREE.DoubleSide,
+        blending: THREE.NormalBlending,
+        roughness: 0.2,
+        metalness: 2,
+        envMap: clouds,
+        envMapIntensity: 2.5,
+        reflectivity: 0,
+        emissive: new THREE.Color("#DABB46").multiplyScalar(0.1),
+        emissiveIntensity: 2,
       }),
-    [clouds] // Recreate material when envMap updates
+    [clouds]
   )
 }
 
@@ -1051,7 +932,7 @@ const useGodsMaterial = () => {
       }
     })
   }, [textures])
-
+  // Gods Material (continuação)
   return useMemo(
     () =>
       new MeshBasicMaterial({
@@ -1105,7 +986,7 @@ const useHoofMaterial = () => {
         envMapIntensity: 1.0,
         reflectivity: 0.5,
       }),
-    [textures, clouds] // Adicione clouds como dependência
+    [textures, clouds]
   )
 }
 
@@ -1148,7 +1029,7 @@ const useAtmMaterial = () => {
         envMap: clouds,
         envMapIntensity: 0.8,
       }),
-    [textures, clouds] // Added clouds to dependencies
+    [textures, clouds]
   )
 }
 
@@ -1156,7 +1037,6 @@ const useAtmMaterial = () => {
 const useAtmMetalMaterial = () => {
   const textures = useTexture({
     map: "/texture/atmBake1.webp",
-    //metalnessMap: "/texture/atmMetallicV1.webp",
     materialEmissive: "/texture/atmEmissive.webp",
   })
 
@@ -1179,7 +1059,6 @@ const useAtmMetalMaterial = () => {
     () =>
       new MeshStandardMaterial({
         map: textures.map,
-        //metalnessMap: textures.metalnessMap,
         emissiveMap: textures.materialEmissive,
         transparent: false,
         alphaTest: 0.05,
@@ -1252,75 +1131,44 @@ const useScrollMaterial = () => {
   )
 }
 
-//Portal Material
-const usePortalMaterial = () => {
-  return useMemo(() => {
-    const video = document.createElement("video")
-    video.src = "/video/tunnel.mp4"
-    video.loop = true
-    video.muted = true
-    video.playsInline = true
-    video.autoplay = true
-    // video.play().catch(e => console.error("Video play failed:", e))
+// Substitutos simples para elementos de vídeo
+// Substituto para portal
+const useSimplePortalMaterial = () => {
+  return useMemo(
+    () =>
+      new MeshBasicMaterial({
+        color: new Color("#000022"),
+        side: DoubleSide,
+        emissive: new Color("#330066"),
+        emissiveIntensity: 2,
+      }),
+    []
+  )
+}
 
-    const videoTexture = new THREE.VideoTexture(video)
-    videoTexture.minFilter = THREE.LinearFilter
-    videoTexture.magFilter = THREE.LinearFilter
-    videoTexture.flipY = false
-
-    return new THREE.MeshBasicMaterial({
-      map: videoTexture,
-      side: THREE.DoubleSide,
-      toneMapped: false, // Desativa mapeamento tonal
-      fog: false, // Desativa efeito de neblina
-      transparent: false, // Totalmente opaco
-      alphaTest: 0, // Sem descarte de pixels
-      color: new THREE.Color(0xffffff), // Cor base branca neutra
-    })
-  }, [])
+// Substituto para água
+const useSimpleWaterMaterial = () => {
+  return useMemo(
+    () =>
+      new MeshBasicMaterial({
+        color: new Color("#88ccff"),
+        side: DoubleSide,
+        emissive: new Color("#6699ff"),
+        emissiveIntensity: 0.5,
+      }),
+    []
+  )
 }
 
 // Components -----------------------------------------
-
-const handleAtmClick = e => {
-  e.stopPropagation()
-  // Prevent navigation if ATM iframe is already active
-  if (atmIframeActive) return
-  audioManager.play("transition")
-  // Navigate to token section
-  if (onCastleClick) {
-    onCastleClick("token") // Uses the existing playTransition function
-  }
-
-  // Log for debugging
-  if (window.globalNavigation && window.globalNavigation.log) {
-    window.globalNavigation.log("ATM mesh clicked - navigation requested")
-  }
-}
-
-// Pointer event handlers for visual feedback
-const handlePointerEnter = e => {
-  if (atmIframeActive) return // Skip if iframe is already active
-  e.stopPropagation()
-  document.body.style.cursor = "pointer"
-}
-
-const handlePointerLeave = e => {
-  e.stopPropagation()
-  document.body.style.cursor = "default"
-}
-
 const CastleModel = ({
   onCastleClick,
-  hasInteracted,
   atmIframeActive,
   mirrorIframeActive,
   scrollIframeActive,
   setAtmiframeActive,
   setMirrorIframeActive,
   setScrollIframeActive,
-  onPortalPlay,
-  onWaterPlay,
   activeSection,
 }) => {
   const { nodes } = useGLTF("/models/Castle.glb")
@@ -1342,31 +1190,17 @@ const CastleModel = ({
   const atmMaterial = useAtmMaterial()
   const AtmMetalMaterial = useAtmMetalMaterial()
   const scrollMaterial = useScrollMaterial()
-  const portal = usePortalMaterial()
   const mirror = useMirrorMaterial(activeSection)
   const hallosMaterial = useHallosMaterial()
 
-  useFrame(({ camera }) => {
-    // Chamar updateSpatialSounds com a posição da câmera a cada frame
-    updateSpatialSounds(camera.position)
-  })
+  // Usar materiais simples em vez de vídeo
+  const simplePortalMaterial = useSimplePortalMaterial()
+  const simpleWaterMaterial = useSimpleWaterMaterial()
 
-  // Use the video texture hook for portal
-  const { texture: portalTexture, playVideo: playPortal } =
-    useVideoTexture("/video/tunnel.mp4")
-  const portalMaterial = useMemo(
-    () =>
-      portalTexture
-        ? new MeshBasicMaterial({
-            map: portalTexture,
-            side: DoubleSide,
-          })
-        : new MeshBasicMaterial({
-            color: 0x000000,
-            side: DoubleSide,
-          }),
-    [portalTexture]
-  )
+  useFrame(({ camera }) => {
+    // Desativado para melhorar performance em mobile
+    // updateSpatialSounds(camera.position)
+  })
 
   const mirrorHandlers = NavigationSystem.createElementHandlers(
     "mirror",
@@ -1389,171 +1223,14 @@ const CastleModel = ({
     scrollIframeActive
   )
 
-  // Use the video texture hook for water
-  const { texture: waterTexture, playVideo: playWater } =
-    useVideoTexture("/video/water.mp4")
-  const waterMaterial = useMemo(
-    () =>
-      waterTexture
-        ? new MeshBasicMaterial({
-            map: waterTexture,
-            side: DoubleSide,
-            toneMapped: false,
-            fog: false,
-            transparent: false,
-            alphaTest: 0,
-            color: new Color(0xffffff),
-          })
-        : new MeshBasicMaterial({
-            color: 0x000000,
-            side: DoubleSide,
-          }),
-    [waterTexture]
-  )
+  // Versão simplificada da função updateSpatialSounds
+  const updateSpatialSounds = useCallback(cameraPosition => {
+    // Função desativada para melhorar performance
+    return
+  }, [])
 
-  const updateSpatialSounds = cameraPosition => {
-    // Verificações de segurança para o AudioManager
-    if (!window.audioManager || !window.audioManager.sounds) {
-      console.log("AudioManager não disponível")
-      return
-    }
-
-    // Coordenadas fixas dos elementos
-    const orbPosition = { x: 1.76, y: 1.155, z: -0.883 }
-    const fountainPosition = { x: 0, y: 0.8, z: 2.406 } // Posição da fonte
-
-    //----- GERENCIAMENTO DO SOM DA ORB -----//
-
-    // Cálculo de distância para o orb
-    const dxOrb = cameraPosition.x - orbPosition.x
-    const dyOrb = cameraPosition.y - orbPosition.y
-    const dzOrb = cameraPosition.z - orbPosition.z
-    const distToOrb = Math.sqrt(dxOrb * dxOrb + dyOrb * dyOrb + dzOrb * dzOrb)
-
-    // Distância máxima para o orb
-    const maxOrbDistance = 1.5
-
-    // Gerenciar som do orb
-    if (window.audioManager.sounds.orb) {
-      if (distToOrb < maxOrbDistance) {
-        // Cálculo de volume para o orb
-        const attenuationOrb = 1 - Math.pow(distToOrb / maxOrbDistance, 3)
-        const orbVolume = Math.max(0, 0.2 * attenuationOrb)
-
-        if (orbVolume > 0.05) {
-          window.audioManager.sounds.orb.audio.volume = orbVolume
-
-          if (!window.audioManager.sounds.orb.isPlaying) {
-            window.audioManager.play("orb")
-          }
-        } else {
-          if (window.audioManager.sounds.orb.isPlaying) {
-            window.audioManager.stop("orb")
-          }
-        }
-      } else {
-        if (window.audioManager.sounds.orb.isPlaying) {
-          window.audioManager.stop("orb")
-        }
-      }
-    }
-
-    //----- GERENCIAMENTO DO SOM DO POLE (POLE) -----//
-    const polePosition = { x: 0.2, y: -0.35, z: -0.2 } // Posição do pole
-
-    // Cálculo de distância para o pole
-    const dxPole = cameraPosition.x - polePosition.x
-    const dyPole = cameraPosition.y - polePosition.y
-    const dzPole = cameraPosition.z - polePosition.z
-    const distToPole = Math.sqrt(
-      dxPole * dxPole + dyPole * dyPole + dzPole * dzPole
-    )
-
-    // Distância máxima para o pole
-    const maxPoleDistance = 12
-    // Gerenciar som do pole
-    if (window.audioManager.sounds.pole) {
-      // Verificar se está dentro do alcance
-      if (distToPole < maxPoleDistance) {
-        // Atenuação cúbica para o pole
-        const attenuationPole = 1 - Math.pow(distToPole / maxPoleDistance, 3)
-        const poleVolume = Math.max(0, 0.2 * attenuationPole)
-        // Aplicar volume apenas se for significativo
-        if (poleVolume > 0.05) {
-          window.audioManager.sounds.pole.audio.volume = poleVolume
-          // Iniciar reprodução se não estiver tocando
-          if (!window.audioManager.sounds.pole.isPlaying) {
-            window.audioManager.play("pole")
-          }
-        } else {
-          // Volume muito baixo, parar o som
-          if (window.audioManager.sounds.pole.isPlaying) {
-            window.audioManager.stop("pole")
-          }
-        }
-      } else {
-        // Fora do alcance, parar o som
-        if (window.audioManager.sounds.pole.isPlaying) {
-          window.audioManager.stop("pole")
-        }
-      }
-    }
-    //----- GERENCIAMENTO DO SOM DA FONTE (FOUNTAIN) -----//
-    // Cálculo de distância para a fonte
-    const dxFountain = cameraPosition.x - fountainPosition.x
-    const dyFountain = cameraPosition.y - fountainPosition.y
-    const dzFountain = cameraPosition.z - fountainPosition.z
-    const distToFountain = Math.sqrt(
-      dxFountain * dxFountain +
-        dyFountain * dyFountain +
-        dzFountain * dzFountain
-    )
-
-    const maxFountainDistance = 3.5
-
-    // Gerenciar som da fonte
-    if (window.audioManager.sounds.fountain) {
-      // Verificar se está dentro do alcance
-      if (distToFountain < maxFountainDistance) {
-        const attenuationFountain = 1 - distToFountain / maxFountainDistance
-
-        const fountainVolume = Math.max(0, 0.2 * attenuationFountain)
-
-        if (fountainVolume > 0.02) {
-          window.audioManager.sounds.fountain.audio.volume = fountainVolume
-
-          // Iniciar reprodução se não estiver tocando
-          if (!window.audioManager.sounds.fountain.isPlaying) {
-            window.audioManager.play("fountain")
-          }
-        } else {
-          // Volume muito baixo, parar o som
-          if (window.audioManager.sounds.fountain.isPlaying) {
-            window.audioManager.stop("fountain")
-          }
-        }
-      } else {
-        // Fora do alcance, parar o som
-        if (window.audioManager.sounds.fountain.isPlaying) {
-          window.audioManager.stop("fountain")
-        }
-      }
-    }
-  }
-
-  // Adicione ou atualize o useEffect para garantir que tanto o som do orb quanto
-  // o da fonte começam parados
+  // Efeito simplificado - reduzido para melhorar performance
   useEffect(() => {
-    // Garantir que os sons começam parados
-    if (window.audioManager && window.audioManager.sounds) {
-      if (window.audioManager.sounds.orb) {
-        window.audioManager.stop("orb")
-      }
-      if (window.audioManager.sounds.fountain) {
-        window.audioManager.stop("fountain")
-      }
-    }
-
     // Limpar ao desmontar
     return () => {
       if (window.audioManager && window.audioManager.sounds) {
@@ -1566,46 +1243,6 @@ const CastleModel = ({
       }
     }
   }, [])
-
-  // Adicione este hook useFrame no componente CastleModel
-  // IMPORTANTE: Certifique-se de que este é o ÚNICO useFrame que chama updateSpatialSounds!
-  useFrame(({ camera }) => {
-    // Chamar a função de atualização de som a cada frame
-    updateSpatialSounds(camera.position)
-  })
-
-  // // Adicione isto no useEffect do CastleModel para garantir que o som sempre começa parado
-  // useEffect(() => {
-  //   // Garantir que o som da orb começa parado
-  //   if (window.audioManager && window.audioManager.sounds && window.audioManager.sounds.orb) {
-  //     window.audioManager.stop('orb');
-  //   }
-
-  //   // Limpar ao desmontar
-  //   return () => {
-  //     if (window.audioManager && window.audioManager.sounds && window.audioManager.sounds.orb) {
-  //       window.audioManager.stop('orb');
-  //     }
-  //   };
-  // }, []);
-
-  // Depois no useEffect para iniciar a reprodução:
-  useEffect(() => {
-    if (hasInteracted) {
-      playPortal()
-      playWater()
-    }
-  }, [hasInteracted, onPortalPlay])
-
-  // Play videos when user has interacted
-  useEffect(() => {
-    if (hasInteracted) {
-      playPortal()
-      playWater()
-      if (onPortalPlay) onPortalPlay()
-      if (onWaterPlay) onWaterPlay()
-    }
-  }, [hasInteracted, onPortalPlay, onWaterPlay])
 
   const wingsMaterial = useWingsMaterial()
 
@@ -1696,115 +1333,28 @@ const CastleModel = ({
         onClick={scrollHandlers.handleClick}
         {...scrollHandlers.pointerHandlers}
       />
-      <Select disabled>
-        <mesh
-          geometry={nodes.HeartVid.geometry}
-          material={portalMaterial}
-          layers-enable={1}
-          castShadow={false}
-          receiveShadow={false}
-        />
-      </Select>
+      {/* Substituir vídeo do portal por material estático */}
+      <mesh
+        geometry={nodes.HeartVid.geometry}
+        material={simplePortalMaterial}
+        layers-enable={1}
+        castShadow={false}
+        receiveShadow={false}
+      />
+      {/* Substituir vídeo da água por material estático */}
       <mesh
         geometry={nodes.water.geometry}
-        material={waterMaterial}
+        material={simpleWaterMaterial}
         layers-enable={2}
         castShadow={false}
         receiveShadow={false}
       />
-      <FountainParticles
-        count={80}
-        color="lightpink"
-        size={0.03}
-        speed={0.65}
-        spread={0.3}
-        layers-enable={2}
-        castShadow={false}
-        receiveShadow={false}
-      />
-      // Fix for the iframes in CastleModel component // For the AtmIframe
-      component:
-      <AtmIframe
-        position={[1.675, 1.185, 0.86]}
-        rotation={[1.47, 0.194, -1.088]}
-        onReturnToMain={source => {
-          setTimeout(() => {
-            // Fecha o iframe
-            setAtmiframeActive(false)
-            audioManager.play("transition")
-            if (source === "pole") {
-              onCastleClick("nav")
-            } else {
-              const storedPosition = window.navigationSystem.getPosition("atm")
-              if (storedPosition) {
-                const { position, target } = storedPosition
-                smoothCameraReturn(position, target)
-              } else {
-                onCastleClick("nav")
-              }
-            }
-          }, 0) // ⬅ 0ms já resolve o conflito de render
-        }}
-        isActive={atmIframeActive}
-      />
-      // For the MirrorIframe component:
-      <MirrorIframe
-        onReturnToMain={source => {
-          // Close the iframe first
-          setMirrorIframeActive(false)
-
-          // Return to stored position or nav
-          setTimeout(() => {
-            if (source === "pole") {
-              // If coming from pole, go back to nav section
-              onCastleClick("nav")
-            } else {
-              const storedPosition =
-                window.navigationSystem.getPosition("mirror")
-              if (storedPosition) {
-                const { position, target } = storedPosition
-                smoothCameraReturn(position, target)
-              } else {
-                // Fallback to nav if no stored position
-                onCastleClick("nav")
-              }
-            }
-          }, 100)
-        }}
-        isActive={mirrorIframeActive}
-      />
-      // For the ScrollIframe component:
-      <ScrollIframe
-        onReturnToMain={source => {
-          // Close the iframe first
-          setScrollIframeActive(false)
-
-          // Return to stored position or nav
-          setTimeout(() => {
-            if (source === "pole") {
-              // If coming from pole, go back to nav section
-              onCastleClick("nav")
-            } else {
-              const storedPosition =
-                window.navigationSystem.getPosition("scroll")
-              if (storedPosition) {
-                const { position, target } = storedPosition
-                smoothCameraReturn(position, target)
-              } else {
-                // Fallback to nav if no stored position
-                onCastleClick("nav")
-              }
-            }
-          }, 100)
-        }}
-        isActive={scrollIframeActive}
-      />
+      {/* Removido o componente de partículas da fonte para melhorar performance */}
     </group>
   )
 }
 
 // Navigation system to handle all interactive elements
-
 const Castle = ({ activeSection }) => {
   const controls = useRef()
   const [atmiframeActive, setAtmiframeActive] = useState(false)
@@ -1812,6 +1362,12 @@ const Castle = ({ activeSection }) => {
   const [scrollIframeActive, setScrollIframeActive] = useState(false)
   const [cameraLocked, setCameraLocked] = useState(true)
   const [clipboardMessage, setClipboardMessage] = useState("")
+
+  // Detectar se é dispositivo móvel
+  const isMobile =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    ) || window.innerWidth < 768
 
   // Reset function for iframes
   window.resetIframes = () => {
@@ -1834,18 +1390,10 @@ const Castle = ({ activeSection }) => {
   const playTransition = sectionName => {
     if (!controls.current) return
 
-    // if (window.audioManager) {
-    //   console.log("Starting ambient sound from Castle component");
-    //   window.audioManager.startAmbient();
-    // }
-
     // Parar sons da seção anterior
     if (activeSection && activeSection !== sectionName) {
       audioManager.stopSectionSounds(activeSection)
     }
-
-    // Reproduzir o som da transição
-    // audioManager.play("transition")
 
     // Após um pequeno atraso, reproduzir o som da nova seção
     setTimeout(() => {
@@ -1916,112 +1464,26 @@ const Castle = ({ activeSection }) => {
         })
         .finally(() => {
           controls.current.enabled = sectionName === "nav"
-          // console.log(`Transition to ${sectionName} complete`)
         })
     }
   }
 
   useEffect(() => {
     // Iniciar áudio ambiente quando o componente é montado
-    audioManager.startAmbient()
-
-    // Pré-carregar todos os sons para melhor performance
-    audioManager.preloadAll()
+    if (!isMobile) {
+      audioManager.startAmbient()
+      // Pré-carregar todos os sons para melhor performance
+      audioManager.preloadAll()
+    }
 
     return () => {
       // Parar todo áudio quando o componente é desmontado
       audioManager.stopAmbient()
     }
-  }, [])
+  }, [isMobile])
 
   // Make the transition function available globally
   window.globalNavigation.navigateTo = playTransition
-
-  const handleReturnToMain = () => {
-    console.log("Back to main requested")
-    playTransition("nav")
-  }
-
-  // Function to copy camera position to clipboard
-  const copyPositionToClipboard = () => {
-    if (!controls.current) return
-
-    try {
-      // Get position and target from controls
-      const position = controls.current.getPosition()
-      const target = controls.current.getTarget()
-
-      // Handle different possible return formats
-      let posArray, targetArray
-
-      // Handle position - might be Vector3, array, or object with x,y,z
-      if (Array.isArray(position)) {
-        posArray = position
-      } else if (typeof position.toArray === "function") {
-        posArray = position.toArray()
-      } else {
-        posArray = [position.x, position.y, position.z]
-      }
-
-      // Handle target - might be Vector3, array, or object with x,y,z
-      if (Array.isArray(target)) {
-        targetArray = target
-      } else if (typeof target.toArray === "function") {
-        targetArray = target.toArray()
-      } else {
-        targetArray = [target.x, target.y, target.z]
-      }
-
-      // Combine into the format needed for the camera config
-      const positionArray = [...posArray, ...targetArray]
-
-      // Format the array for display and copy
-      const formattedArray = positionArray
-        .map(val => Number(val).toFixed(15))
-        .join(", ")
-
-      // Also create a formatted JS array for console
-      const jsArrayFormat = `[\n  ${posArray
-        .map(val => Number(val).toFixed(15))
-        .join(",\n  ")},\n  ${targetArray
-        .map(val => Number(val).toFixed(15))
-        .join(",\n  ")}\n]`
-
-      // Copy to clipboard
-      navigator.clipboard
-        .writeText(formattedArray)
-        .then(() => {
-          setClipboardMessage("Position copied to clipboard!")
-
-          // Clear message after 3 seconds
-          setTimeout(() => {
-            setClipboardMessage("")
-          }, 3000)
-        })
-        .catch(err => {
-          console.error("Could not copy position to clipboard:", err)
-          setClipboardMessage("Failed to copy position.")
-
-          // Clear message after 3 seconds
-          setTimeout(() => {
-            setClipboardMessage("")
-          }, 3000)
-        })
-
-      // Log to console in different formats for reference
-      console.log("Camera raw position:", position)
-      console.log("Camera raw target:", target)
-      console.log("Camera position array:", positionArray)
-      console.log("Camera position formatted for config:", jsArrayFormat)
-    } catch (error) {
-      console.error("Error getting camera position:", error)
-      setClipboardMessage("Error getting camera position")
-
-      setTimeout(() => {
-        setClipboardMessage("")
-      }, 3000)
-    }
-  }
 
   // Make controls globally available
   useEffect(() => {
@@ -2063,12 +1525,8 @@ const Castle = ({ activeSection }) => {
         label: "Lock Camera",
         onChange: locked => {
           setCameraLocked(locked)
-          // ... restante da lógica
         },
       },
-      getLookAt: button(() => {
-        copyPositionToClipboard()
-      }),
       resetCamera: button(() => {
         if (!controls.current) return
         const targetPosition = getCameraPosition(activeSection || "nav")
@@ -2077,7 +1535,7 @@ const Castle = ({ activeSection }) => {
         }
       }),
     },
-    { collapsed: false }
+    { collapsed: true }
   )
 
   useEffect(() => {
@@ -2112,51 +1570,6 @@ const Castle = ({ activeSection }) => {
       window.removeEventListener("keyup", handleKeyUp)
     }
   }, [])
-
-  // Create notification element outside the 3D canvas
-  useEffect(() => {
-    if (clipboardMessage) {
-      // Create and append notification element
-      const notification = document.createElement("div")
-      notification.style.position = "absolute"
-      notification.style.top = "10px"
-      notification.style.right = "10px"
-      notification.style.padding = "8px 12px"
-      notification.style.backgroundColor = "rgba(0, 0, 0, 0.7)"
-      notification.style.color = "white"
-      notification.style.borderRadius = "4px"
-      notification.style.zIndex = "1000"
-      notification.style.fontFamily = "sans-serif"
-      notification.style.fontSize = "14px"
-      notification.style.transition = "opacity 0.3s ease"
-      notification.style.opacity = "0"
-      notification.textContent = clipboardMessage
-
-      document.body.appendChild(notification)
-
-      // Fade in
-      setTimeout(() => {
-        notification.style.opacity = "1"
-      }, 10)
-
-      // Remove after timeout
-      setTimeout(() => {
-        notification.style.opacity = "0"
-        setTimeout(() => {
-          if (document.body.contains(notification)) {
-            document.body.removeChild(notification)
-          }
-        }, 300)
-      }, 3000)
-
-      // Cleanup on unmount
-      return () => {
-        if (document.body.contains(notification)) {
-          document.body.removeChild(notification)
-        }
-      }
-    }
-  }, [clipboardMessage])
 
   return (
     <group position={[0, 0, 0]} rotation={[0, 0, 0]}>
