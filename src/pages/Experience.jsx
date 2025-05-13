@@ -176,7 +176,7 @@ const SceneController = React.memo(({ section, cameraRef }) => {
 const PrimaryContent = React.memo(({ activeSection, onSectionChange }) => {
   const groundParams = useRef({
     height: 5,
-    radius: 100,
+    radius: 10,
     scale: 100,
   })
 
