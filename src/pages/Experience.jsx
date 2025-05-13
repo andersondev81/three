@@ -204,7 +204,6 @@ const PrimaryContent = React.memo(({ activeSection, onSectionChange }) => {
   return (
     <>
       <Environment
-        key={`env-${forceUpdate}`}
         files="/images/CloudsBG.jpg"
         background
         resolution={256}
