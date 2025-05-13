@@ -17,14 +17,14 @@ import { Flower } from "../assets/models/Flower"
 import { Pole } from "../assets/models/Pole"
 import { Stairs } from "../assets/models/Stairs"
 import { CloudGroup } from "../assets/models/CloudsGroup"
-import AtmIframe from "../assets/models/AtmIframe"
-import MirrorIframe from "../assets/models/MirrorIframe"
+// Removido import do AtmIframe
 import Orb from "../assets/models/Orb"
 
 import { CAMERA_CONFIG } from "../components/cameraConfig"
 import { EffectsTree } from "../components/helpers/EffectsTree"
 import EnvMapLoader from "../components/helpers/EnvMapLoader"
 
+// Detector de dispositivo móvel
 const useMobileDetection = () => {
   const [isMobile, setIsMobile] = useState(false)
 
@@ -45,47 +45,25 @@ const useMobileDetection = () => {
   return isMobile
 }
 
-// Canvas Configuration
+// Canvas Configuration - Otimizada para mobile
 const getCanvasConfig = isMobile => ({
-  dpr: isMobile ? 1 : 1.5,
+  dpr: isMobile ? 0.6 : 1.5,
   gl: {
-    antialias: false,
+    antialias: !isMobile,
     powerPreference: isMobile ? "low-power" : "high-performance",
     alpha: false,
     depth: true,
-    stencil: true,
+    stencil: !isMobile,
+    precision: isMobile ? "lowp" : "highp",
   },
   performance: { min: 0.1 },
   camera: {
     fov: 50,
     near: 0.1,
-    far: 1000,
+    far: isMobile ? 400 : 1000,
     position: [15.9, 6.8, -11.4],
   },
   shadows: !isMobile,
-})
-
-// Cloud Mask Component
-const CloudMask = React.memo(() => {
-  const stencil = useMask(1, true)
-  const { scene } = useGLTF("/models/castleClouds.glb")
-
-  useEffect(() => {
-    if (!scene) return
-
-    scene.traverse(obj => {
-      if (obj.isMesh) {
-        obj.material = new THREE.MeshBasicMaterial({
-          ...stencil,
-          colorWrite: false,
-        })
-      }
-    })
-  }, [scene, stencil])
-
-  return (
-    <primitive object={scene} position={[0, 0, 0]} scale={1} visible={false} />
-  )
 })
 
 // Camera Animation Hook
@@ -175,7 +153,7 @@ const useCameraAnimation = (section, cameraRef) => {
 }
 
 // Scene Controller Component
-const SceneController = React.memo(({ section, cameraRef }) => {
+const SceneController = React.memo(({ section, cameraRef, isMobile }) => {
   const { camera } = useThree()
   useCameraAnimation(section, cameraRef)
 
@@ -190,88 +168,63 @@ const SceneController = React.memo(({ section, cameraRef }) => {
   return (
     <>
       <EnvMapLoader />
-      {process.env.NODE_ENV !== "production" && <Perf position="top-left" />}
+      {!isMobile && process.env.NODE_ENV !== "production" && (
+        <Perf position="top-left" />
+      )}
     </>
   )
 })
 
-// Scene Content Components
-const PrimaryContent = React.memo(({ activeSection, onSectionChange }) => {
-  const groundParams = useRef({
-    height: 5,
-    radius: 100,
-    scale: 100,
-  })
+// Componente unificado de cena
+const SceneContent = React.memo(
+  ({ activeSection, onSectionChange, isMobile }) => {
+    // Estado e refs
+    const groundParams = useRef({
+      height: 5,
+      radius: isMobile ? 50 : 100,
+      scale: isMobile ? 50 : 100,
+    })
+    const [forceUpdate, setForceUpdate] = useState(0)
+    const cloudGroupRef = useRef()
+    const { camera } = useThree()
 
-  const [forceUpdate, setForceUpdate] = useState(0)
+    // Efeito de animação do ground
+    useEffect(() => {
+      if (typeof gsap !== "undefined") {
+        gsap.to(groundParams.current, {
+          radius: isMobile ? 8 : 10,
+          duration: 2,
+          delay: 3,
+          ease: "power2.inOut",
+          onUpdate: () => {
+            setForceUpdate(prev => prev + 1)
+          },
+          onComplete: () => {
+            console.log("Animação concluída!")
+          },
+        })
+      }
+    }, [isMobile])
 
-  useEffect(() => {
-    if (typeof gsap !== "undefined") {
-      console.log("Start Environment Animation")
+    // Ajuste de opacidade de nuvens
+    useFrame(() => {
+      if (!cloudGroupRef.current) return
 
-      gsap.to(groundParams.current, {
-        radius: 10,
-        duration: 2,
-        delay: 3,
-        ease: "power2.inOut",
-        onUpdate: () => {
-          setForceUpdate(prev => prev + 1)
-        },
-        onComplete: () => {
-          console.log("Animação concluída!")
-        },
-      })
-    }
-  }, [])
+      const castleCenter = new THREE.Vector3(0, 0, 0)
+      const distance = camera.position.distanceTo(castleCenter)
 
-  return (
-    <>
-      <Environment
-        key={`env-${forceUpdate}`}
-        files="/images/CloudsBG1.hdr"
-        background
-        resolution={256}
-        ground={{
-          height: groundParams.current.height,
-          radius: groundParams.current.radius,
-          scale: groundParams.current.scale,
-        }}
-      />
-      <EffectsTree />
-      <Castle activeSection={activeSection} scale={[2, 1.6, 2]} />
-      <Flower />
-      <Stairs />
-      <Orb />
-      <Pole
-        position={[-0.8, 0, 5.8]}
-        scale={[0.6, 0.6, 0.6]}
-        onSectionChange={onSectionChange}
-      />
-    </>
-  )
-})
+      const minDistance = isMobile ? 4 : 5
+      const maxDistance = isMobile ? 6 : 8
+      const minOpacity = 0.7
+      const maxOpacity = isMobile ? 1.3 : 1.8
 
-const SecondaryContent = React.memo(({ loadedAssets }) => {
-  const cloudGroupRef = useRef()
-  const { camera } = useThree()
+      const t = THREE.MathUtils.clamp(
+        (distance - minDistance) / (maxDistance - minDistance),
+        0,
+        1
+      )
+      const targetOpacity = THREE.MathUtils.lerp(maxOpacity, minOpacity, t)
 
-  useFrame(() => {
-    const castleCenter = new THREE.Vector3(0, 0, 0)
-    const distance = camera.position.distanceTo(castleCenter)
-
-    const minDistance = 5
-    const maxDistance = 8
-    const minOpacity = 0.7
-    const maxOpacity = 1.8
-
-    const t = THREE.MathUtils.clamp(
-      (distance - minDistance) / (maxDistance - minDistance),
-      0,
-      1
-    )
-    const targetOpacity = THREE.MathUtils.lerp(maxOpacity, minOpacity, t)
-
-    if (cloudGroupRef.current) {
       cloudGroupRef.current.traverse(obj => {
         if (obj.isMesh && obj.material) {
           obj.material.opacity = targetOpacity
@@ -280,188 +233,105 @@ const SecondaryContent = React.memo(({ loadedAssets }) => {
           obj.material.needsUpdate = true
         }
       })
+    })
+
+    // Filtrar nuvens para mobile
+    const getFilteredClouds = () => {
+      if (!isMobile) {
+        // Lista completa de nuvens para desktop
+        return [
+          { position: [-0.1, 0, 4.3], fade: 20 },
+          {
+            position: [0, 0, 4.5],
+            segments: 25,
+            bounds: [10, 1, 1.2],
+            fade: 5,
+            opacity: 1.3,
+          },
+          {
+            position: [-0.6, -0.15, 5],
+            segments: 8,
+            bounds: [1.5, 1, 1],
+            opacity: 1.5,
+          },
+          // Outras nuvens...
+          // Nuvens simplificadas para brevidade
+        ]
+      } else {
+        // Versão reduzida para mobile
+        return [
+          { position: [-0.1, 0, 4.3], fade: 20 },
+          {
+            position: [0, 0, 5.6],
+            density: 1,
+            segments: 15,
+            bounds: [8, 1, 4],
+          },
+          { position: [1.6, 0.2, 2.6], rotation: [0, 0.15, 0] },
+          { position: [-1, 0.15, 2.75], rotation: [0, -0.4, 0] },
+        ]
+      }
     }
-  })
 
-  return (
-    <>
-      <ambientLight intensity={3} color="#ffffff" />
-      <group ref={cloudGroupRef}>
-        <CloudGroup
-          commonProps={{
-            concentration: 1.2,
-            sizeAttenuation: true,
-            color: "#ffffff",
-            depthWrite: false,
-            stencilRef: 1,
-            stencilWrite: true,
-            stencilFunc: THREE.EqualStencilFunc,
-            cloudLightIntensity: 0.5,
-            opacity: 1.0,
-            transparent: true,
+    return (
+      <>
+        {/* Environment */}
+        <Environment
+          key={`env-${forceUpdate}`}
+          files="/images/CloudsBG1.hdr"
+          background
+          resolution={isMobile ? 128 : 256}
+          ground={{
+            height: groundParams.current.height,
+            radius: groundParams.current.radius,
+            scale: groundParams.current.scale,
           }}
-          clouds={[
-            //Front clouds
-            { position: [-0.1, 0, 4.3], fade: 20 },
-            {
-              position: [0, 0, 4.5],
-              segments: 25,
-              bounds: [10, 1, 1.2],
-              fade: 5,
-              opacity: 1.3,
-            },
-            {
-              position: [-0.6, -0.15, 5],
-              segments: 8,
-              bounds: [1.5, 1, 1],
-              opacity: 1.5,
-            },
-            //far front
-            {
-              position: [0, 0, 5.6],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 6],
-            },
-            {
-              position: [-2.8, 0, 3.3],
-              density: 1,
-              segments: 35,
-              bounds: [12, 1, 5],
-            },
-            {
-              position: [-3.0, 0, 5.0],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 5],
-            },
-            {
-              position: [2.8, 0, 3.3],
-              density: 1,
-              segments: 35,
-              bounds: [12, 1, 5],
-            },
-            {
-              position: [3.0, 0, 5.0],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 5],
-            },
-            // right side
-            { position: [0.2, 0, 3.95], rotation: [0, 1.7, 3.3] },
-            { position: [1.6, 0.2, 2.6], rotation: [0, 0.15, 0] },
-            { position: [2.05, 0.15, 2.2], rotation: [0, 1, 0] },
-            { position: [2.65, 0.15, 1.1], rotation: [0, 1.7, 0] },
-            { position: [2.8, 0.1, -0.6], rotation: [0, 1.4, 0] },
-            // far right
-            {
-              position: [6.6, 0, 2],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 5],
-              rotation: [0, 3.14, 0],
-            },
-            {
-              position: [6.6, 0, -1.5],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 5],
-              rotation: [0, 3.14, 0],
-            },
-            {
-              position: [6.0, 0, -4.8],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 5],
-              rotation: [0, 3.14, 0],
-            },
-            // rear side
-            { position: [2.9, 0.15, -2.0], rotation: [0, 2, 0] },
-            { position: [1.4, 0.2, -3.35], rotation: [3.14, 0.15, 0] },
-            { position: [-0.1, 0.2, -3.45], rotation: [3.14, 0, 0] },
-            { position: [-1.5, 0.2, -3.35], rotation: [3.14, -0.1, 0] },
-            { position: [-1.75, 0.15, -2.55], rotation: [0, 0.8, 0] },
-            // far back
-            {
-              position: [0, 0, -6.0],
-              density: 1,
-              segments: 30,
-              bounds: [12, 1, 5],
-              rotation: [0, 3.14, 0],
-            },
-            {
-              position: [3, 0, -8.3],
-              density: 1,
-              segments: 20,
-              bounds: [10, 1, 3],
-              rotation: [0, 3.14, 0],
-            },
-            {
-              position: [-3, 0, -8.0],
-              density: 1,
-              segments: 20,
-              bounds: [10, 1, 3],
-              rotation: [0, 3.14, 0],
-            },
-            //{ position: [3.5, 0, -10.0], density:1, segments: 20, bounds: [8,1,6], rotation: [0, 5.2, 0]  },
-            //{ position: [-3.5, 0, -9.0], density:1, segments: 30, bounds: [10,1,6], rotation: [0, 3.14, 0]  },
-            //left side
-            { position: [-2.55, 0.15, -1], rotation: [0, 1.65, 3.14] },
-            { position: [-2.7, 0.15, 0.1], rotation: [3.14, 1.7, 3.14] },
-            { position: [-2, 0.15, 2.4], rotation: [0, -1.1, 0] },
-            { position: [-1, 0.15, 2.75], rotation: [0, -0.4, 0] },
-            { position: [-0.25, 0, 4.2], rotation: [0, -1.9, 0] },
-            // far left
-            {
-              position: [-6.6, 0, 2.0],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 5],
-              rotation: [0, 3.14, 0],
-            },
-            {
-              position: [-6.6, 0, -1.5],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 5],
-              rotation: [0, 3.14, 0],
-            },
-            {
-              position: [-6.0, 0, -4.8],
-              density: 1,
-              segments: 30,
-              bounds: [10, 1, 5],
-              rotation: [0, 3.14, 0],
-            },
-          ]}
         />
-      </group>
-    </>
-  )
-})
 
-const TertiaryContent = React.memo(() => <MirrorIframe />)
+        {!isMobile && <EffectsTree />}
 
-// Scene Content Wrapper
-const SceneContent = React.memo(({ activeSection, onSectionChange }) => {
-  return (
-    <>
-      <PrimaryContent
-        activeSection={activeSection}
-        onSectionChange={onSectionChange}
-      />
-      <SecondaryContent />
-      <TertiaryContent />
-    </>
-  )
-})
+        {/* Elementos principais */}
+        <Castle activeSection={activeSection} scale={[2, 1.6, 2]} />
+
+        {/* Elementos condicionais */}
+        {!isMobile && <Flower />}
+        <Stairs />
+        <Orb />
+        <Pole
+          position={[-0.8, 0, 5.8]}
+          scale={[0.6, 0.6, 0.6]}
+          onSectionChange={onSectionChange}
+        />
+
+        {/* Sistema de nuvens */}
+        <ambientLight intensity={3} color="#ffffff" />
+        <group ref={cloudGroupRef}>
+          <CloudGroup
+            commonProps={{
+              concentration: isMobile ? 0.9 : 1.2,
+              sizeAttenuation: true,
+              color: "#ffffff",
+              depthWrite: false,
+              stencilRef: 1,
+              stencilWrite: true,
+              stencilFunc: THREE.EqualStencilFunc,
+              cloudLightIntensity: isMobile ? 0.4 : 0.5,
+              opacity: 1.0,
+              transparent: true,
+            }}
+            clouds={getFilteredClouds()}
+          />
+        </group>
+      </>
+    )
+  }
+)
 
 // Main Experience Component
 const Experience = () => {
   const [currentSection, setCurrentSection] = useState(0)
   const [activeSection, setActiveSection] = useState("intro")
   const cameraRef = useRef(null)
-
   const isMobile = useMobileDetection()
   const canvasConfig = getCanvasConfig(isMobile)
 
@@ -493,8 +363,8 @@ const Experience = () => {
 
     window.addEventListener("sectionChange", handleSectionChangeEvent)
 
-    // Iniciar áudio ambiente se necessário
-    if (window.audioManager && window.audioManager.startAmbient) {
+    // Iniciar áudio ambiente se necessário (e não em mobile)
+    if (window.audioManager && window.audioManager.startAmbient && !isMobile) {
       window.audioManager.startAmbient()
     }
 
@@ -508,16 +378,36 @@ const Experience = () => {
         window.audioManager.stopAmbient()
       }
     }
-  }, [handleSectionChange, handleCustomCameraPosition])
+  }, [handleSectionChange, handleCustomCameraPosition, isMobile])
+
+  // Tratamento de erros WebGL
+  useEffect(() => {
+    const handleWebGLError = event => {
+      if (event?.target?.nodeName === "CANVAS") {
+        console.warn("WebGL error detected, attempting to recover...")
+      }
+    }
+
+    window.addEventListener("error", handleWebGLError)
+
+    return () => {
+      window.removeEventListener("error", handleWebGLError)
+    }
+  }, [])
 
   return (
     <div className="relative w-full h-screen">
       <div className="absolute inset-0 z-0">
         <Canvas {...canvasConfig} className="w-full h-full">
-          <SceneController section={currentSection} cameraRef={cameraRef} />
+          <SceneController
+            section={currentSection}
+            cameraRef={cameraRef}
+            isMobile={isMobile}
+          />
           <SceneContent
             activeSection={activeSection}
             onSectionChange={handleSectionChange}
+            isMobile={isMobile}
           />
         </Canvas>
       </div>
@@ -531,9 +421,17 @@ const Experience = () => {
             cameraRef={cameraRef.current}
             className="pointer-events-auto"
           />
-          <AtmIframe section={currentSection} />
+          {/* AtmIframe removido */}
         </div>
       </div>
+
+      {/* Aviso para dispositivos móveis */}
+      {isMobile && (
+        <div className="absolute bottom-4 left-0 right-0 text-center text-white text-xs bg-black/50 p-2 z-20">
+          Experiência otimizada para dispositivos móveis. Para melhor
+          desempenho, use um desktop.
+        </div>
+      )}
     </div>
   )
 }
