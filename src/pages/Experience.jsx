@@ -275,8 +275,7 @@ const SceneContent = React.memo(
 
     return (
       <>
-        {/* Environment */}
-        <Environment
+        {/* <Environment
           key={`env-${forceUpdate}`}
           files="/images/CloudsBG1.hdr"
           background
@@ -286,27 +285,27 @@ const SceneContent = React.memo(
             radius: groundParams.current.radius,
             scale: groundParams.current.scale,
           }}
-        />
+        /> */}
 
-        {!isMobile && <EffectsTree />}
+        {/* {!isMobile && <EffectsTree />} */}
 
         {/* Elementos principais */}
         <Castle activeSection={activeSection} scale={[2, 1.6, 2]} />
 
         {/* Elementos condicionais */}
-        {!isMobile && <Flower />}
+        {/* {!isMobile && <Flower />}
         <Stairs />
         <Orb />
         <Pole
           position={[-0.8, 0, 5.8]}
           scale={[0.6, 0.6, 0.6]}
           onSectionChange={onSectionChange}
-        />
+        /> */}
 
         {/* Sistema de nuvens */}
         <ambientLight intensity={3} color="#ffffff" />
         <group ref={cloudGroupRef}>
-          <CloudGroup
+          {/* <CloudGroup
             commonProps={{
               concentration: isMobile ? 0.9 : 1.2,
               sizeAttenuation: true,
@@ -320,7 +319,7 @@ const SceneContent = React.memo(
               transparent: true,
             }}
             clouds={getFilteredClouds()}
-          />
+          /> */}
         </group>
       </>
     )
