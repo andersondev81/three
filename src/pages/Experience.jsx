@@ -176,17 +176,6 @@ const SceneController = React.memo(({ section, cameraRef }) => {
 const PrimaryContent = React.memo(({ activeSection, onSectionChange }) => {
   return (
     <>
-      <Environment
-        files="/images/bg1.hdr"
-        background
-        backgroundBlurriness={50}
-        resolution={256}
-        ground={{
-          height: 7,
-          radius: 28,
-          scale: 100,
-        }}
-      />
       <EffectsTree />
       <Castle activeSection={activeSection} scale={[2, 1.6, 2]} />
     </>
