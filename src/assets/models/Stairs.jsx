@@ -16,12 +16,12 @@ import {
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js"
 
 const useStairsMaterial = () => {
-  const textures = useTexture({
-    map: "/texture/stairsColor.webp",
-    normalMap: "/texture/stairs_Normal.webp", // This is your texture, not the node
-    alphaMap: "/texture/stairs_Alpha.webp",
-    roughnessMap: "/texture/stairs_Roughness.webp",
-  })
+const textures = useTexture({
+  map: "/texture/stairsColor.avif",
+  normalMap: "/texture/stairs_Normal.avif",
+  alphaMap: "/texture/stairs_Alpha.avif",
+  roughnessMap: "/texture/stairs_Roughness.avif",
+})
 
   // load Environment
   const envMap = useLoader(TextureLoader, "/images/bg1.jpg")
