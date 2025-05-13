@@ -83,9 +83,9 @@ const RotatingAxis = React.memo(({ axis, speed, children }) => {
 const OrbMesh = React.memo(({ isZoomed, setIsZoomed, onSectionChange }) => {
   const { nodes } = useGLTF("/models/Orbit.glb")
   const textures = useTexture({
-    map: "/texture/Orb_AlphaV1.webp",
-    alphaMap: "/texture/Orb_Alpha.webp",
-    emissiveMap: "/texture/OrbBake_Emissive.webp",
+    map: "/texture/Orb_AlphaV1.avif",
+    alphaMap: "/texture/Orb_Alpha.avif",
+    emissiveMap: "/texture/OrbBake_Emissive.avif",
   })
 
   // Configure textures
