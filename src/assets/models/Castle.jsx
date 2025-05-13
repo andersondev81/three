@@ -1,10 +1,15 @@
 import { CameraControls, useGLTF } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
+import { Select } from "@react-three/postprocessing"
 import { button, useControls } from "leva"
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import * as THREE from "three"
 import { Color, DoubleSide, MeshBasicMaterial } from "three"
+import FountainParticles from "../../components/FountainParticles"
 import RotateAxis from "../../components/helpers/RotateAxis"
+import AtmIframe from "../models/AtmIframe"
+import MirrorIframe from "../models/MirrorIframe"
+import ScrollIframe from "../models/ScrolIframe"
 
 import audioManager from "./AudioManager"
 const SMALL_SCREEN_THRESHOLD = 768
@@ -33,7 +38,6 @@ function smoothCameraReturn(position, target) {
       .catch(err => console.error("Camera transition error:", err))
   }, 50)
 }
-
 window.lastClickedPositions = {
   mirror: null,
   atm: null,
@@ -99,7 +103,7 @@ if (window.navigationSystem) {
 const NavigationSystem = {
   // Store camera positions for each navigation element
   positions: {},
-  // Track navigation sources
+  // NEW: Track navigation sources
   navigationSources: {},
 
   // Initialize the system
@@ -111,12 +115,12 @@ const NavigationSystem = {
         audioManager.play("transition")
       },
 
-      // Track navigation source
+      // NEW: Track navigation source
       setNavigationSource: (elementId, source) => {
         NavigationSystem.navigationSources[elementId] = source
       },
 
-      // Get navigation source
+      // NEW: Get navigation source
       getNavigationSource: elementId => {
         return NavigationSystem.navigationSources[elementId] || "direct"
       },
@@ -129,6 +133,7 @@ const NavigationSystem = {
       // Clear stored positions
       clearPositions: () => {
         NavigationSystem.positions = {}
+        // NEW: Also clear navigation sources
         NavigationSystem.navigationSources = {}
       },
 
@@ -138,6 +143,7 @@ const NavigationSystem = {
           delete NavigationSystem.positions[elementId]
           console.log(`Cleared position for ${elementId}`)
         }
+        // NEW: Also clear navigation source
         if (NavigationSystem.navigationSources[elementId]) {
           delete NavigationSystem.navigationSources[elementId]
         }
@@ -344,121 +350,171 @@ const cameraConfig = {
   },
 }
 
-// Materiais extremamente simples sem texturas
-// Objeto com cores para diferentes partes do castelo
+// Materiais básicos sem texturas
+// Definir cores para cada material
 const COLORS = {
-  CASTLE: "#c2a887",
-  HEART: "#ff6b6b",
-  HEART_MASK: "#e8b84e",
-  LIGHTS: "#ffffff",
-  GODS_WALLS: "#aea29a",
-  WALLS: "#d4c4a8",
-  PILARS: "#bfae98",
-  FLOOR: "#b0a794",
-  MIRROR_FRAME: "#e8b84e",
-  FLOOR_HEART: "#578fd7",
-  LOGO: "#fa3c81",
-  DECOR: "#f9dd71",
-  BOW: "#f9dd71",
-  MIRROR: "#a6cce5",
-  HALLOS: "#dabb46",
-  GODS: "#fcfcfc",
-  HOOF: "#578fd7",
-  ATM: "#c4627d",
-  ATM_METAL: "#d7d7d7",
-  SCROLL: "#f0e6d2",
-  PORTAL: "#330066",
-  WATER: "#88ccff",
-  WINGS: "#e8e4dc",
+  castle: "#c2a887",
+  castleHeart: "#ff6b6b",
+  castleHeartMask: "#e8b84e",
+  castleLights: "#ffffff",
+  castleGodsWalls: "#aea29a",
+  castleWalls: "#d4c4a8",
+  castlePilars: "#bfae98",
+  floor: "#b0a794",
+  mirrorFrame: "#e8b84e",
+  floorHeart: "#578fd7",
+  logo: "#fa3c81",
+  decor: "#f9dd71",
+  bow: "#f9dd71",
+  mirror: "#a6cce5",
+  hallos: "#dabb46",
+  gods: "#fcfcfc",
+  hoof: "#578fd7",
+  atm: "#c4627d",
+  atmMetal: "#d7d7d7",
+  scroll: "#f0e6d2",
+  portal: "#000066",
+  water: "#88ccff",
+  wings: "#e8e4dc",
+}
+
+// Substitutos simplificados para os hooks de video texture
+const useSimpleVideoTexture = () => {
+  const playVideo = useCallback(() => {
+    // Função vazia
+  }, [])
+
+  return {
+    texture: null,
+    playVideo,
+  }
 }
 
 // Components -----------------------------------------
 const CastleModel = ({
   onCastleClick,
+  hasInteracted,
   atmIframeActive,
   mirrorIframeActive,
   scrollIframeActive,
   setAtmiframeActive,
   setMirrorIframeActive,
   setScrollIframeActive,
+  onPortalPlay,
+  onWaterPlay,
   activeSection,
 }) => {
   const { nodes } = useGLTF("/models/Castle.glb")
 
-  // Criar materiais simples sem texturas
+  // Materiais básicos sem texturas
   const materials = useMemo(() => {
     return {
-      castle: new MeshBasicMaterial({ color: COLORS.CASTLE, side: DoubleSide }),
+      material: new MeshBasicMaterial({
+        color: COLORS.castle,
+        side: DoubleSide,
+      }),
       castleHeart: new MeshBasicMaterial({
-        color: COLORS.HEART,
+        color: COLORS.castleHeart,
         side: DoubleSide,
       }),
       castleHeartMask: new MeshBasicMaterial({
-        color: COLORS.HEART_MASK,
+        color: COLORS.castleHeartMask,
         side: DoubleSide,
       }),
       castleLights: new MeshBasicMaterial({
-        color: COLORS.LIGHTS,
+        color: COLORS.castleLights,
         side: DoubleSide,
-        emissive: new Color(COLORS.LIGHTS),
+        emissive: new Color(COLORS.castleLights),
         emissiveIntensity: 1,
       }),
       castleGodsWalls: new MeshBasicMaterial({
-        color: COLORS.GODS_WALLS,
+        color: COLORS.castleGodsWalls,
         side: DoubleSide,
       }),
       castleWalls: new MeshBasicMaterial({
-        color: COLORS.WALLS,
+        color: COLORS.castleWalls,
         side: DoubleSide,
       }),
       castlePilars: new MeshBasicMaterial({
-        color: COLORS.PILARS,
+        color: COLORS.castlePilars,
         side: DoubleSide,
       }),
-      floor: new MeshBasicMaterial({ color: COLORS.FLOOR, side: DoubleSide }),
+      floorMaterial: new MeshBasicMaterial({
+        color: COLORS.floor,
+        side: DoubleSide,
+      }),
       mirrorFrame: new MeshBasicMaterial({
-        color: COLORS.MIRROR_FRAME,
+        color: COLORS.mirrorFrame,
         side: DoubleSide,
       }),
       floorHeart: new MeshBasicMaterial({
-        color: COLORS.FLOOR_HEART,
-        side: DoubleSide,
-        emissive: new Color(COLORS.FLOOR_HEART),
-        emissiveIntensity: 0.5,
-      }),
-      logo: new MeshBasicMaterial({ color: COLORS.LOGO, side: DoubleSide }),
-      decor: new MeshBasicMaterial({ color: COLORS.DECOR, side: DoubleSide }),
-      bow: new MeshBasicMaterial({ color: COLORS.BOW, side: DoubleSide }),
-      mirror: new MeshBasicMaterial({ color: COLORS.MIRROR, side: DoubleSide }),
-      hallos: new MeshBasicMaterial({ color: COLORS.HALLOS, side: DoubleSide }),
-      gods: new MeshBasicMaterial({ color: COLORS.GODS, side: DoubleSide }),
-      hoof: new MeshBasicMaterial({
-        color: COLORS.HOOF,
-        side: DoubleSide,
-        emissive: new Color(COLORS.HOOF),
-        emissiveIntensity: 0.5,
-      }),
-      atm: new MeshBasicMaterial({ color: COLORS.ATM, side: DoubleSide }),
-      atmMetal: new MeshBasicMaterial({
-        color: COLORS.ATM_METAL,
+        color: COLORS.floorHeart,
         side: DoubleSide,
       }),
-      scroll: new MeshBasicMaterial({ color: COLORS.SCROLL, side: DoubleSide }),
-      portal: new MeshBasicMaterial({
-        color: COLORS.PORTAL,
+      logoMaterial: new MeshBasicMaterial({
+        color: COLORS.logo,
         side: DoubleSide,
-        emissive: new Color(COLORS.PORTAL),
+      }),
+      decorMaterial: new MeshBasicMaterial({
+        color: COLORS.decor,
+        side: DoubleSide,
+      }),
+      bowMaterial: new MeshBasicMaterial({
+        color: COLORS.bow,
+        side: DoubleSide,
+      }),
+      mirror: new MeshBasicMaterial({ color: COLORS.mirror, side: DoubleSide }),
+      hallosMaterial: new MeshBasicMaterial({
+        color: COLORS.hallos,
+        side: DoubleSide,
+      }),
+      godsMaterial: new MeshBasicMaterial({
+        color: COLORS.gods,
+        side: DoubleSide,
+      }),
+      hoofMaterial: new MeshBasicMaterial({
+        color: COLORS.hoof,
+        side: DoubleSide,
+      }),
+      atmMaterial: new MeshBasicMaterial({
+        color: COLORS.atm,
+        side: DoubleSide,
+      }),
+      AtmMetalMaterial: new MeshBasicMaterial({
+        color: COLORS.atmMetal,
+        side: DoubleSide,
+      }),
+      scrollMaterial: new MeshBasicMaterial({
+        color: COLORS.scroll,
+        side: DoubleSide,
+      }),
+      portalMaterial: new MeshBasicMaterial({
+        color: COLORS.portal,
+        side: DoubleSide,
+        emissive: new Color(COLORS.portal),
         emissiveIntensity: 1,
       }),
-      water: new MeshBasicMaterial({
-        color: COLORS.WATER,
+      waterMaterial: new MeshBasicMaterial({
+        color: COLORS.water,
         side: DoubleSide,
         emissive: new Color("#6699ff"),
         emissiveIntensity: 0.5,
       }),
-      wings: new MeshBasicMaterial({ color: COLORS.WINGS, side: DoubleSide }),
+      wingsMaterial: new MeshBasicMaterial({
+        color: COLORS.wings,
+        side: DoubleSide,
+      }),
     }
   }, [])
+
+  // Substitutos simples para o useVideoTexture
+  const { playVideo: playPortal } = useSimpleVideoTexture()
+  const { playVideo: playWater } = useSimpleVideoTexture()
+
+  useFrame(({ camera }) => {
+    // Desativar para melhorar performance
+    // updateSpatialSounds(camera.position)
+  })
 
   const mirrorHandlers = NavigationSystem.createElementHandlers(
     "mirror",
@@ -481,11 +537,25 @@ const CastleModel = ({
     scrollIframeActive
   )
 
+  const updateSpatialSounds = useCallback(cameraPosition => {
+    // Função desativada para melhorar performance
+    return
+  }, [])
+
+  // Desativando reprodução de vídeos
+  useEffect(() => {
+    if (hasInteracted) {
+      // Funções vazias para não tentar reproduzir vídeos
+      if (onPortalPlay) onPortalPlay()
+      if (onWaterPlay) onWaterPlay()
+    }
+  }, [hasInteracted, onPortalPlay, onWaterPlay])
+
   return (
     <group dispose={null}>
       <mesh
         geometry={nodes.castle.geometry}
-        material={materials.castle}
+        material={materials.material}
         layers-enable={1}
         castShadow={false}
         receiveShadow={false}
@@ -514,12 +584,18 @@ const CastleModel = ({
         geometry={nodes.castlePilars.geometry}
         material={materials.castlePilars}
       />
-      <mesh geometry={nodes.wings.geometry} material={materials.wings} />
-      <mesh geometry={nodes.gods.geometry} material={materials.gods} />
-      <mesh geometry={nodes.decor.geometry} material={materials.decor} />
+      <mesh
+        geometry={nodes.wings.geometry}
+        material={materials.wingsMaterial}
+      />
+      <mesh geometry={nodes.gods.geometry} material={materials.godsMaterial} />
+      <mesh
+        geometry={nodes.decor.geometry}
+        material={materials.decorMaterial}
+      />
       <mesh
         geometry={nodes.floor.geometry}
-        material={materials.floor}
+        material={materials.floorMaterial}
         layers-enable={1}
       />
       <mesh
@@ -538,29 +614,32 @@ const CastleModel = ({
       />
       <mesh
         geometry={nodes.Hallos.geometry}
-        material={materials.hallos}
+        material={materials.hallosMaterial}
         layers-enable={2}
       />
       <mesh
         geometry={nodes.hoofGlass.geometry}
-        material={materials.hoof}
+        material={materials.hoofMaterial}
         layers-enable={2}
       />
       <mesh
         geometry={nodes.atm.geometry}
-        material={materials.atm}
+        material={materials.atmMaterial}
         layers-enable={2}
         castShadow={false}
         receiveShadow={false}
         onClick={atmHandlers.handleClick}
         {...atmHandlers.pointerHandlers}
       />
-      <mesh geometry={nodes.atmMetal.geometry} material={materials.atmMetal} />
+      <mesh
+        geometry={nodes.atmMetal.geometry}
+        material={materials.AtmMetalMaterial}
+      />
       <group position={[-0.056, 1.247, -2.117]}>
         <RotateAxis axis="y" speed={0.7} rotationType="euler">
           <mesh
             geometry={nodes.bow.geometry}
-            material={materials.bow}
+            material={materials.bowMaterial}
             castShadow={false}
             receiveShadow={false}
           />
@@ -570,7 +649,7 @@ const CastleModel = ({
         <RotateAxis axis="y" speed={1} rotationType="euler">
           <mesh
             geometry={nodes.LogoCupid.geometry}
-            material={materials.logo}
+            material={materials.logoMaterial}
             position={[0.001, 4.18, -0.006]}
             layers-enable={2}
             castShadow={false}
@@ -580,27 +659,103 @@ const CastleModel = ({
       </group>
       <mesh
         geometry={nodes.scroll.geometry}
-        material={materials.scroll}
+        material={materials.scrollMaterial}
         castShadow={false}
         receiveShadow={false}
         onClick={scrollHandlers.handleClick}
         {...scrollHandlers.pointerHandlers}
       />
-      {/* Material estático básico para o portal */}
-      <mesh
-        geometry={nodes.HeartVid.geometry}
-        material={materials.portal}
-        layers-enable={1}
-        castShadow={false}
-        receiveShadow={false}
-      />
-      {/* Material estático básico para a água */}
+      <Select disabled>
+        <mesh
+          geometry={nodes.HeartVid.geometry}
+          material={materials.portalMaterial}
+          layers-enable={1}
+          castShadow={false}
+          receiveShadow={false}
+        />
+      </Select>
       <mesh
         geometry={nodes.water.geometry}
-        material={materials.water}
+        material={materials.waterMaterial}
         layers-enable={2}
         castShadow={false}
         receiveShadow={false}
+      />
+      {/* Removido FountainParticles para melhorar performance */}
+
+      {/* Mantendo os iframes para preservar funcionalidade */}
+      <AtmIframe
+        position={[1.675, 1.185, 0.86]}
+        rotation={[1.47, 0.194, -1.088]}
+        onReturnToMain={source => {
+          setTimeout(() => {
+            // Fecha o iframe
+            setAtmiframeActive(false)
+            audioManager.play("transition")
+            if (source === "pole") {
+              onCastleClick("nav")
+            } else {
+              const storedPosition = window.navigationSystem.getPosition("atm")
+              if (storedPosition) {
+                const { position, target } = storedPosition
+                smoothCameraReturn(position, target)
+              } else {
+                onCastleClick("nav")
+              }
+            }
+          }, 0)
+        }}
+        isActive={atmIframeActive}
+      />
+      <MirrorIframe
+        onReturnToMain={source => {
+          // Close the iframe first
+          setMirrorIframeActive(false)
+
+          // Return to stored position or nav
+          setTimeout(() => {
+            if (source === "pole") {
+              // If coming from pole, go back to nav section
+              onCastleClick("nav")
+            } else {
+              const storedPosition =
+                window.navigationSystem.getPosition("mirror")
+              if (storedPosition) {
+                const { position, target } = storedPosition
+                smoothCameraReturn(position, target)
+              } else {
+                // Fallback to nav if no stored position
+                onCastleClick("nav")
+              }
+            }
+          }, 100)
+        }}
+        isActive={mirrorIframeActive}
+      />
+      <ScrollIframe
+        onReturnToMain={source => {
+          // Close the iframe first
+          setScrollIframeActive(false)
+
+          // Return to stored position or nav
+          setTimeout(() => {
+            if (source === "pole") {
+              // If coming from pole, go back to nav section
+              onCastleClick("nav")
+            } else {
+              const storedPosition =
+                window.navigationSystem.getPosition("scroll")
+              if (storedPosition) {
+                const { position, target } = storedPosition
+                smoothCameraReturn(position, target)
+              } else {
+                // Fallback to nav if no stored position
+                onCastleClick("nav")
+              }
+            }
+          }, 100)
+        }}
+        isActive={scrollIframeActive}
       />
     </group>
   )
@@ -613,6 +768,7 @@ const Castle = ({ activeSection }) => {
   const [mirrorIframeActive, setMirrorIframeActive] = useState(false)
   const [scrollIframeActive, setScrollIframeActive] = useState(false)
   const [cameraLocked, setCameraLocked] = useState(true)
+  const [clipboardMessage, setClipboardMessage] = useState("")
 
   // Detectar se é dispositivo móvel
   const isMobile =
@@ -641,10 +797,46 @@ const Castle = ({ activeSection }) => {
   const playTransition = sectionName => {
     if (!controls.current) return
 
-    // Parar sons da seção anterior - desativado em mobile
-    if (!isMobile && activeSection && activeSection !== sectionName) {
+    // Parar sons da seção anterior
+    if (activeSection && activeSection !== sectionName) {
       audioManager.stopSectionSounds(activeSection)
     }
+
+    // Após um pequeno atraso, reproduzir o som da nova seção
+    setTimeout(() => {
+      // Reproduzir o som específico da seção, se existir
+      if (audioManager.sounds[sectionName]) {
+        audioManager.play(sectionName)
+      }
+
+      // Reproduzir sons adicionais específicos para certas seções
+      switch (sectionName) {
+        case "aidatingcoach":
+          // Som do espelho
+          if (audioManager.sounds["mirror"]) {
+            audioManager.play("mirror")
+          }
+          break
+        case "token":
+          // Som do ATM/moedas
+          if (audioManager.sounds["atm"]) {
+            audioManager.play("atm")
+          }
+          if (audioManager.sounds["coins"]) {
+            audioManager.play("coins")
+          }
+          break
+        case "roadmap":
+          // Som do pergaminho/papel
+          if (audioManager.sounds["scroll"]) {
+            audioManager.play("scroll")
+          }
+          if (audioManager.sounds["paper"]) {
+            audioManager.play("paper")
+          }
+          break
+      }
+    }, 300) // Pequeno atraso para não sobrepor o som de transição
 
     // Update iframe active states based on section
     if (sectionName === "roadmap") {
@@ -684,14 +876,26 @@ const Castle = ({ activeSection }) => {
   }
 
   useEffect(() => {
-    // Iniciar áudio ambiente quando o componente é montado - desativado em mobile
+    // Iniciar áudio ambiente quando o componente é montado
     if (!isMobile) {
       audioManager.startAmbient()
+    } else {
+      // Para mobile, desativar todos os sons
+      if (window.audioManager) {
+        window.audioManager.stopAll = function () {
+          for (let sound in this.sounds) {
+            this.stop(sound)
+          }
+        }
+        window.audioManager.stopAll()
+      }
     }
 
     return () => {
       // Parar todo áudio quando o componente é desmontado
-      audioManager.stopAmbient()
+      if (window.audioManager) {
+        window.audioManager.stopAmbient()
+      }
     }
   }, [isMobile])
 
@@ -712,6 +916,7 @@ const Castle = ({ activeSection }) => {
       controls.current.boundaryFriction = 1
       controls.current.boundaryEnclosesCamera = true
       controls.current.dollyToCursor = false
+      controls.current.min
       controls.current.minY = 1
       controls.current.maxY = 15
 
@@ -740,6 +945,9 @@ const Castle = ({ activeSection }) => {
           setCameraLocked(locked)
         },
       },
+      getLookAt: button(() => {
+        copyPositionToClipboard()
+      }),
       resetCamera: button(() => {
         if (!controls.current) return
         const targetPosition = getCameraPosition(activeSection || "nav")
@@ -750,6 +958,63 @@ const Castle = ({ activeSection }) => {
     },
     { collapsed: true }
   )
+
+  // Function to copy camera position to clipboard
+  const copyPositionToClipboard = () => {
+    if (!controls.current) return
+
+    try {
+      // Get position and target from controls
+      const position = controls.current.getPosition()
+      const target = controls.current.getTarget()
+
+      // Handle different possible return formats
+      let posArray, targetArray
+
+      // Handle position - might be Vector3, array, or object with x,y,z
+      if (Array.isArray(position)) {
+        posArray = position
+      } else if (typeof position.toArray === "function") {
+        posArray = position.toArray()
+      } else {
+        posArray = [position.x, position.y, position.z]
+      }
+
+      // Handle target - might be Vector3, array, or object with x,y,z
+      if (Array.isArray(target)) {
+        targetArray = target
+      } else if (typeof target.toArray === "function") {
+        targetArray = target.toArray()
+      } else {
+        targetArray = [target.x, target.y, target.z]
+      }
+
+      // Combine into the format needed for the camera config
+      const positionArray = [...posArray, ...targetArray]
+
+      // Format the array for display and copy
+      const formattedArray = positionArray
+        .map(val => Number(val).toFixed(15))
+        .join(", ")
+
+      // Copy to clipboard
+      navigator.clipboard
+        .writeText(formattedArray)
+        .then(() => {
+          setClipboardMessage("Position copied to clipboard!")
+          setTimeout(() => setClipboardMessage(""), 3000)
+        })
+        .catch(err => {
+          console.error("Could not copy position to clipboard:", err)
+          setClipboardMessage("Failed to copy position.")
+          setTimeout(() => setClipboardMessage(""), 3000)
+        })
+    } catch (error) {
+      console.error("Error getting camera position:", error)
+      setClipboardMessage("Error getting camera position")
+      setTimeout(() => setClipboardMessage(""), 3000)
+    }
+  }
 
   useEffect(() => {
     if (!controls.current || !controls.current.mouseButtons) return
@@ -784,6 +1049,51 @@ const Castle = ({ activeSection }) => {
     }
   }, [])
 
+  // Create notification element outside the 3D canvas
+  useEffect(() => {
+    if (clipboardMessage) {
+      // Create and append notification element
+      const notification = document.createElement("div")
+      notification.style.position = "absolute"
+      notification.style.top = "10px"
+      notification.style.right = "10px"
+      notification.style.padding = "8px 12px"
+      notification.style.backgroundColor = "rgba(0, 0, 0, 0.7)"
+      notification.style.color = "white"
+      notification.style.borderRadius = "4px"
+      notification.style.zIndex = "1000"
+      notification.style.fontFamily = "sans-serif"
+      notification.style.fontSize = "14px"
+      notification.style.transition = "opacity 0.3s ease"
+      notification.style.opacity = "0"
+      notification.textContent = clipboardMessage
+
+      document.body.appendChild(notification)
+
+      // Fade in
+      setTimeout(() => {
+        notification.style.opacity = "1"
+      }, 10)
+
+      // Remove after timeout
+      setTimeout(() => {
+        notification.style.opacity = "0"
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification)
+          }
+        }, 300)
+      }, 3000)
+
+      // Cleanup on unmount
+      return () => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification)
+        }
+      }
+    }
+  }, [clipboardMessage])
+
   return (
     <group position={[0, 0, 0]} rotation={[0, 0, 0]}>
       <CameraControls
@@ -808,6 +1118,24 @@ const Castle = ({ activeSection }) => {
         setScrollIframeActive={setScrollIframeActive}
         activeSection={activeSection}
       />
+
+      {/* Aviso para dispositivos móveis */}
+      {isMobile && (
+        <Html position={[0, 3, 0]}>
+          <div
+            style={{
+              backgroundColor: "rgba(0,0,0,0.7)",
+              color: "white",
+              padding: "10px",
+              borderRadius: "5px",
+              textAlign: "center",
+              maxWidth: "200px",
+            }}
+          >
+            Versão simplificada para dispositivos móveis
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
