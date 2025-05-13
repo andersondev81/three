@@ -204,7 +204,7 @@ const PrimaryContent = React.memo(({ activeSection, onSectionChange }) => {
   return (
     <>
       <Environment
-        files="/images/CloudsBG.jpg"
+        preset="sunset"
         background
         resolution={256}
         ground={{
