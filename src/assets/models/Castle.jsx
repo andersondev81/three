@@ -1712,6 +1712,16 @@ const CastleModel = ({
         castShadow={false}
         receiveShadow={false}
       />
+      <FountainParticles
+        count={80}
+        color="lightpink"
+        size={0.03}
+        speed={0.65}
+        spread={0.3}
+        layers-enable={2}
+        castShadow={false}
+        receiveShadow={false}
+      />
       // Fix for the iframes in CastleModel component // For the AtmIframe
       component:
       <AtmIframe
