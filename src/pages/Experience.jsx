@@ -174,44 +174,17 @@ const SceneController = React.memo(({ section, cameraRef }) => {
 
 // Scene Content Components
 const PrimaryContent = React.memo(({ activeSection, onSectionChange }) => {
-  const groundParams = useRef({
-    height: 5,
-    radius: 10,
-    scale: 100,
-  })
-
-  const [forceUpdate, setForceUpdate] = useState(0)
-
-  useEffect(() => {
-    if (typeof gsap !== "undefined") {
-      console.log("Start Environment Animation")
-
-      gsap.to(groundParams.current, {
-        radius: 10,
-        duration: 1,
-        delay: 2,
-        ease: "power2.inOut",
-        onUpdate: () => {
-          setForceUpdate(prev => prev + 1)
-        },
-        onComplete: () => {
-          console.log("Animação concluída!")
-        },
-      })
-    }
-  }, [])
-
   return (
     <>
       <Environment
-        key={`env-${forceUpdate}`}
-        files="/images/CloudsBG1.hdr"
+        files="/images/bg1.hdr"
         background
+        backgroundBlurriness={50}
         resolution={256}
         ground={{
-          height: groundParams.current.height,
-          radius: groundParams.current.radius,
-          scale: groundParams.current.scale,
+          height: 7,
+          radius: 28,
+          scale: 100,
         }}
       />
       <EffectsTree />
