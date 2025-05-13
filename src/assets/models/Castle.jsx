@@ -7,7 +7,8 @@ import * as THREE from "three"
 import { Color, DoubleSide, MeshBasicMaterial } from "three"
 import FountainParticles from "../../components/FountainParticles"
 import RotateAxis from "../../components/helpers/RotateAxis"
-import AtmIframe from "../models/AtmIframe"
+// Removendo o import do AtmIframe
+// import AtmIframe from "../models/AtmIframe"
 import MirrorIframe from "../models/MirrorIframe"
 import ScrollIframe from "../models/ScrolIframe"
 
@@ -683,30 +684,7 @@ const CastleModel = ({
       />
       {/* Removido FountainParticles para melhorar performance */}
 
-      {/* Mantendo os iframes para preservar funcionalidade */}
-      <AtmIframe
-        position={[1.675, 1.185, 0.86]}
-        rotation={[1.47, 0.194, -1.088]}
-        onReturnToMain={source => {
-          setTimeout(() => {
-            // Fecha o iframe
-            setAtmiframeActive(false)
-            audioManager.play("transition")
-            if (source === "pole") {
-              onCastleClick("nav")
-            } else {
-              const storedPosition = window.navigationSystem.getPosition("atm")
-              if (storedPosition) {
-                const { position, target } = storedPosition
-                smoothCameraReturn(position, target)
-              } else {
-                onCastleClick("nav")
-              }
-            }
-          }, 0)
-        }}
-        isActive={atmIframeActive}
-      />
+      {/* Removido AtmIframe */}
       <MirrorIframe
         onReturnToMain={source => {
           // Close the iframe first
@@ -916,7 +894,6 @@ const Castle = ({ activeSection }) => {
       controls.current.boundaryFriction = 1
       controls.current.boundaryEnclosesCamera = true
       controls.current.dollyToCursor = false
-      controls.current.min
       controls.current.minY = 1
       controls.current.maxY = 15
 
@@ -1119,23 +1096,7 @@ const Castle = ({ activeSection }) => {
         activeSection={activeSection}
       />
 
-      {/* Aviso para dispositivos móveis */}
-      {isMobile && (
-        <Html position={[0, 3, 0]}>
-          <div
-            style={{
-              backgroundColor: "rgba(0,0,0,0.7)",
-              color: "white",
-              padding: "10px",
-              borderRadius: "5px",
-              textAlign: "center",
-              maxWidth: "200px",
-            }}
-          >
-            Versão simplificada para dispositivos móveis
-          </div>
-        </Html>
-      )}
+      {/* Remove o componente Html já que estava causando erro */}
     </group>
   )
 }
