@@ -1267,7 +1267,6 @@ const usePortalMaterial = () => {
     videoTexture.minFilter = THREE.LinearFilter
     videoTexture.magFilter = THREE.LinearFilter
     videoTexture.flipY = false
-    videoTexture.encoding = THREE.sRGBEncoding // Mantém cores originais
 
     return new THREE.MeshBasicMaterial({
       map: videoTexture,
