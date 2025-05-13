@@ -1,16 +1,12 @@
-import { Environment, OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { Experience } from "./components/Experience";
+import { useState } from "react"
+import Experience from "./pages/Experience"
+
 function App() {
   return (
-    <>
-      <Canvas camera={{ position: [-1.5, 3, 10], fov: 42 }}>
-        <Experience />
-        <OrbitControls />
-        <Environment preset="sunset" />
-      </Canvas>
-    </>
-  );
+    <div className="relative w-full h-screen bg-black">
+      <Experience />
+    </div>
+  )
 }
 
-export default App;
+export default App

@@ -1,0 +1,99 @@
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+  z-index: 9999;
+  transition: opacity 1s ease-out;
+}
+
+.loading-screen.loaded {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-content {
+  position: relative; /* Adicionado */
+  width: min(90%, 500px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  border-radius: 1rem;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  text-align: center;
+}
+
+.loading-animation {
+  width: 100%;
+  max-width: 200px;
+}
+
+.loading-progress {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.loading-actions {
+  position: fixed; /* Alterado de flex para fixed */
+  right: 20px; /* Posiciona no canto direito */
+  bottom: 20px; /* Posiciona na parte inferior */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Alinha os itens à direita */
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+}
+
+.loading-actions.visible {
+  opacity: 1;
+}
+
+.loading-prompt {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.loading-buttons {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: flex-end; /* Alinha os botões à direita */
+}
+
+.loading-button {
+  padding: 0.25rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  background: linear-gradient(to right, #fa3c81, #6e3cfa);
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.loading-button:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .loading-content {
+    padding: 1.5rem;
+  }
+
+  .loading-button {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+
+  .loading-actions {
+    right: 10px;
+    bottom: 10px;
+  }
+}
