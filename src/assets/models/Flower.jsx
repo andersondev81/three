@@ -7,9 +7,9 @@ import * as THREE from "three"
 export function Flower(props) {
   const { nodes } = useGLTF("/models/Flower.glb")
   const textures = useTexture({
-    diffuse: "/texture/FlowersColor.webp",
-    normal: "/texture/Flowers_Baked_PBR_Normal.jpg",
-    alpha: "/texture/Flowers_Baked_PBR_Alpha.jpg",
+    diffuse: "/texture/FlowersColor.avif",
+    normal: "/texture/Flowers_Normal.avif",
+    alpha: "/texture/Flowers_Alpha.avif",
     env: "/images/studio.jpg",
   })
 
