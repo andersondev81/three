@@ -535,6 +535,7 @@ const useCastleHeartMaterial = (
   }, [textures, metalness, roughness, emissiveIntensity, emissiveColor, clouds])
 }
 
+// Castle Heart Mask Material
 const useCastleHeartMaskMaterial = () => {
   const clouds = useTexture("/images/studio.jpg")
 
@@ -1265,7 +1266,6 @@ const usePortalMaterial = () => {
     videoTexture.minFilter = THREE.LinearFilter
     videoTexture.magFilter = THREE.LinearFilter
     videoTexture.flipY = false
-    videoTexture.encoding = THREE.sRGBEncoding // Mantém cores originais
 
     return new THREE.MeshBasicMaterial({
       map: videoTexture,
