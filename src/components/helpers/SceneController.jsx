@@ -26,65 +26,39 @@ const ENVIRONMENT_PRESETS = {
   Warehouse: "warehouse",
 }
 
-const SceneController = ({ section, cameraRef, useCameraAnimation }) => {
+const SceneController = React.memo(({ section, cameraRef }) => {
+  const { camera } = useThree()
+  const [showPerf, setShowPerf] = useState(false)
+
   useCameraAnimation(section, cameraRef)
-  const { scene } = useThree()
 
-  const {
-    environment,
-    showBackground,
-    preset,
-    presetIntensity,
-    backgroundBlur,
-    environmentIntensity,
-  } = useControls(
-    "Environment",
-    {
-      environment: {
-        value: "Vino Sky V1",
-        options: Object.keys(ENVIRONMENT_OPTIONS),
-        label: "HDR File",
-      },
-      showBackground: {
-        value: true,
-        label: "Show Background",
-      },
-      preset: {
-        value: "Sunset",
-        options: Object.keys(ENVIRONMENT_PRESETS),
-        label: "Lighting Preset",
-      },
-    },
-    { collapsed: false }
-  )
+  useEffect(() => {
+    const togglePerf = e => {
+      if (e.key === "p" || e.key === "P") {
+        setShowPerf(prev => !prev)
+      }
+    }
 
-  const environmentFile = ENVIRONMENT_OPTIONS[environment]
-  const presetValue = ENVIRONMENT_PRESETS[preset]
+    window.addEventListener("keydown", togglePerf)
+    return () => window.removeEventListener("keydown", togglePerf)
+  }, [])
+
+  useEffect(() => {
+    window.threeCamera = camera
+
+    return () => {
+      delete window.threeCamera
+    }
+  }, [camera])
 
   return (
     <>
-      <Environment
-        files={environmentFile}
-        resolution={256}
-        background={showBackground}
-        backgroundBlurriness={backgroundBlur}
-        environmentIntensity={environmentIntensity}
-        preset={null}
-      />
-
-
-      {presetValue && (
-        <Environment
-          preset={presetValue}
-          environmentIntensity={presetIntensity}
-        />
-      )}
-
       <EnvMapLoader />
-
-      {process.env.NODE_ENV !== "production" && <Perf position="top-left" />}
+      {showPerf && process.env.NODE_ENV !== "production" && (
+        <Perf position="top-left" />
+      )}
     </>
   )
-}
+})
 
 export default React.memo(SceneController)

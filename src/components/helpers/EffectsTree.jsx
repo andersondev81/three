@@ -1,17 +1,17 @@
 import { Bloom, EffectComposer } from "@react-three/postprocessing"
-import { useControls } from "leva"
 import React, { useMemo } from "react"
 
 export const EffectsTree = () => {
-  const bloomConfig = useControls("bloom", {
+  // Configurações fixas em vez de useControls
+  const bloomConfig = {
     enabled: true,
-    luminanceThreshold: { value: 1.1, min: 0, max: 2 },
-    intensity: { value: 7.5, min: 0, max: 28 },
+    luminanceThreshold: 1.1,
+    intensity: 7.5,
     mipmapBlur: true,
-    kernelSize: { value: 4, options: [0, 1, 2, 3, 4, 5] },
-    luminanceSmoothing: { value: 0.94, min: 0, max: 2 },
-    radius: { value: 0.42, min: 0, max: 1 },
-  })
+    kernelSize: 4,
+    luminanceSmoothing: 0.94,
+    radius: 0.42,
+  }
 
   const effectsTree = useMemo(() => {
     return (

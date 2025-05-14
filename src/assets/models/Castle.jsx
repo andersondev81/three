@@ -2054,30 +2054,29 @@ const Castle = ({ activeSection }) => {
     }
   }, [])
 
-  useControls(
-    "Controls",
-    {
-      cameraLocked: {
-        value: cameraLocked,
-        label: "Lock Camera",
-        onChange: locked => {
-          setCameraLocked(locked)
-          // ... restante da lógica
-        },
-      },
-      getLookAt: button(() => {
-        copyPositionToClipboard()
-      }),
-      resetCamera: button(() => {
-        if (!controls.current) return
-        const targetPosition = getCameraPosition(activeSection || "nav")
-        if (targetPosition) {
-          controls.current.setLookAt(...targetPosition, true)
-        }
-      }),
-    },
-    { collapsed: false }
-  )
+  // useControls(
+  //   "Controls",
+  //   {
+  //     cameraLocked: {
+  //       value: cameraLocked,
+  //       label: "Lock Camera",
+  //       onChange: locked => {
+  //         setCameraLocked(locked)
+  //       },
+  //     },
+  //     getLookAt: button(() => {
+  //       copyPositionToClipboard()
+  //     }),
+  //     resetCamera: button(() => {
+  //       if (!controls.current) return
+  //       const targetPosition = getCameraPosition(activeSection || "nav")
+  //       if (targetPosition) {
+  //         controls.current.setLookAt(...targetPosition, true)
+  //       }
+  //     }),
+  //   },
+  //   { collapsed: false }
+  // )
 
   useEffect(() => {
     if (!controls.current || !controls.current.mouseButtons) return

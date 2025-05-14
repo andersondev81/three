@@ -10,22 +10,22 @@ const EnvMapLoader = () => {
 
   useEffect(() => {
     // Cria elemento de input de arquivo fora do Canvas
-    const fileInput = document.createElement('input')
-    fileInput.type = 'file'
-    fileInput.style.display = 'none'
-    fileInput.accept = '.hdr,.jpg,.jpeg,.png,.webp'
+    const fileInput = document.createElement("input")
+    fileInput.type = "file"
+    fileInput.style.display = "none"
+    fileInput.accept = ".hdr,.jpg,.jpeg,.png,.webp"
     document.body.appendChild(fileInput)
 
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener("change", e => {
       const file = e.target.files[0]
       if (!file) return
 
       const fileURL = URL.createObjectURL(file)
 
-      if (file.name.toLowerCase().endsWith('.hdr')) {
+      if (file.name.toLowerCase().endsWith(".hdr")) {
         // Para arquivos HDR
         const loader = new RGBELoader()
-        loader.load(fileURL, (texture) => {
+        loader.load(fileURL, texture => {
           texture.mapping = THREE.EquirectangularReflectionMapping
           scene.environment = texture
           scene.background = texture
@@ -33,7 +33,7 @@ const EnvMapLoader = () => {
       } else if (file.name.toLowerCase().match(/\.(jpg|jpeg|png|webp)$/)) {
         // Para imagens comuns
         const loader = new THREE.TextureLoader()
-        loader.load(fileURL, (texture) => {
+        loader.load(fileURL, texture => {
           texture.mapping = THREE.EquirectangularReflectionMapping
           scene.environment = texture
           scene.background = texture
@@ -49,13 +49,13 @@ const EnvMapLoader = () => {
   }, [scene])
 
   // Adiciona um botão simples no painel Leva
-  useControls({
-    "Upload Environment Map": button(() => {
-      if (fileInputRef.current) {
-        fileInputRef.current.click()
-      }
-    })
-  })
+  // useControls({
+  //   "Upload Environment Map": button(() => {
+  //     if (fileInputRef.current) {
+  //       fileInputRef.current.click()
+  //     }
+  //   })
+  // })
 
   // Não renderiza nada no Canvas
   return null

@@ -154,7 +154,20 @@ const useCameraAnimation = (section, cameraRef) => {
 // Scene Controller Component
 const SceneController = React.memo(({ section, cameraRef }) => {
   const { camera } = useThree()
+  const [showPerf, setShowPerf] = useState(false)
+
   useCameraAnimation(section, cameraRef)
+
+  useEffect(() => {
+    const togglePerf = e => {
+      if (e.key === "p" || e.key === "P") {
+        setShowPerf(prev => !prev)
+      }
+    }
+
+    window.addEventListener("keydown", togglePerf)
+    return () => window.removeEventListener("keydown", togglePerf)
+  }, [])
 
   useEffect(() => {
     window.threeCamera = camera
@@ -167,7 +180,9 @@ const SceneController = React.memo(({ section, cameraRef }) => {
   return (
     <>
       <EnvMapLoader />
-      {process.env.NODE_ENV !== "production" && <Perf position="top-left" />}
+      {showPerf && process.env.NODE_ENV !== "production" && (
+        <Perf position="top-left" />
+      )}
     </>
   )
 })
