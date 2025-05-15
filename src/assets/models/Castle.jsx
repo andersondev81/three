@@ -299,8 +299,8 @@ const cameraConfig = {
       -0.21830679207380707, 1.042078953185994, 0.860456882413919,
     ],
     small: [
-      132.95512091806918, 87.33269746995288, 188.3864842177005,
-      -0.1823668021901385, -0.24424001987657776, 0.22391277970336168,
+      -0.6191818190771635, 1.0420789531859995, 92.27433517944273,
+      -0.21830679207380707, 1.042078953185994, 0.860456882413919,
     ],
   },
   sections: {
@@ -315,17 +315,8 @@ const cameraConfig = {
       ],
 
       aidatingcoach: [
-        -2.361710501463067,
-
-        1.439377184450022,
-
-        -1.1825955618240986,
-
-        -0.16561813012505458,
-
-        1.5435201358103645,
-
-        -0.07648364070439503,
+        -2.361710501463067, 1.439377184450022, -1.1825955618240986,
+        -0.16561813012505458, 1.5435201358103645, -0.07648364070439503,
       ],
 
       download: [
@@ -339,17 +330,9 @@ const cameraConfig = {
       ],
 
       roadmap: [
-        -2.162176291859386,
-
-        1.1693966697832865,
-
-        1.1159461725522344,
-
-        0.027134998854945094, 1.177966566007922,
-
-        -0.17952880154910716,
+        -2.162176291859386, 1.1693966697832865, 1.1159461725522344,
+        0.027134998854945094, 1.177966566007922, -0.17952880154910716,
       ],
-      // Nova posição para a visualização do iframe do ATM
       atm: [
         1.374503345207453, 1.441964012122825, 1.68925639812635,
         -0.218306792073807, 1.042078953185994, 0.860456882413919,
@@ -357,7 +340,7 @@ const cameraConfig = {
     },
     small: {
       nav: [
-        -0.47993818136505073, 1.13917177154802, 6.743922666460792,
+        -0.46953619581756645, 1.3516480438889815, 7.21130905852417,
         -1.3224149774642704, 1.6753152120757284, 1.0989767468615808,
       ],
       about: [
@@ -365,19 +348,21 @@ const cameraConfig = {
         -0.3255291216311705, 1.3232162748274139, 0.2492021531029873,
       ],
       aidatingcoach: [
-        -2.3148021101664606, 1.1024327055391172, -1.1063841608771088,
-        -0.1820891855994354, 1.1199307653182649, -0.05437741521465597,
+        -2.361710501463067, 1.439377184450022, -1.1825955618240986,
+        -0.16561813012505458, 1.5435201358103645, -0.07648364070439503,
       ],
       download: [
         1.8562259954731093, 1.1626020325030495, -0.926552435064171,
         1.3674383110764547, 1.1705903196566405, -0.662785847191283,
       ],
-      token: [-1.413729, 1.421313, 1.655757, -0.218307, 1.042079, 0.860457],
-      roadmap: [
-        -2.231073073487725, 1.199565269846763, 1.135322606706848,
-        -0.176846154417628, 0.945515121504943, 0.032543752154573,
+      token: [
+        1.8820146179692514, 1.256404259704647, 0.95489048583858,
+        0.4005218950207079, 0.9552618075887411, 0.24515338785642443,
       ],
-      // Versão para tela pequena
+      roadmap: [
+        -2.27136632232592, 1.219704717323445, 1.185983135275456,
+        0.40491971097480645, 0.9891680073777159, -0.4758823817390637,
+      ],
       atm: [
         1.374503345207453, 1.441964012122825, 1.68925639812635,
         -0.218306792073807, 1.042078953185994, 0.860456882413919,
@@ -2030,12 +2015,12 @@ const Castle = ({ activeSection }) => {
     // Initial configuration
     if (cameraLocked) {
       controls.current.minPolarAngle = Math.PI * 0.4
-      controls.current.maxPolarAngle = Math.PI * 0.5
+      controls.current.maxPolarAngle = Math.PI * 0.55
       controls.current.minDistance = 0
       controls.current.maxDistance = 100
       controls.current.boundaryFriction = 1
       controls.current.boundaryEnclosesCamera = true
-      controls.current.dollyToCursor = false
+      controls.current.dollyToCursor = true
       controls.current.minY = 1
       controls.current.maxY = 15
 
@@ -2054,29 +2039,29 @@ const Castle = ({ activeSection }) => {
     }
   }, [])
 
-  // useControls(
-  //   "Controls",
-  //   {
-  //     cameraLocked: {
-  //       value: cameraLocked,
-  //       label: "Lock Camera",
-  //       onChange: locked => {
-  //         setCameraLocked(locked)
-  //       },
-  //     },
-  //     getLookAt: button(() => {
-  //       copyPositionToClipboard()
-  //     }),
-  //     resetCamera: button(() => {
-  //       if (!controls.current) return
-  //       const targetPosition = getCameraPosition(activeSection || "nav")
-  //       if (targetPosition) {
-  //         controls.current.setLookAt(...targetPosition, true)
-  //       }
-  //     }),
-  //   },
-  //   { collapsed: false }
-  // )
+  useControls(
+    "Controls",
+    {
+      cameraLocked: {
+        value: cameraLocked,
+        label: "Lock Camera",
+        onChange: locked => {
+          setCameraLocked(locked)
+        },
+      },
+      getLookAt: button(() => {
+        copyPositionToClipboard()
+      }),
+      resetCamera: button(() => {
+        if (!controls.current) return
+        const targetPosition = getCameraPosition(activeSection || "nav")
+        if (targetPosition) {
+          controls.current.setLookAt(...targetPosition, true)
+        }
+      }),
+    },
+    { collapsed: false }
+  )
 
   useEffect(() => {
     if (!controls.current || !controls.current.mouseButtons) return
