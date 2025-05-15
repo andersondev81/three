@@ -16,7 +16,7 @@ import {
 } from "@react-three/drei"
 import { Canvas, useThree, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
-
+import FountainParticles from "../components/FountainParticles"
 import Castle from "../assets/models/Castle"
 import { CastleUi } from "../assets/models/CastleUi"
 import { Flower } from "../assets/models/Flower"
@@ -332,6 +332,16 @@ const PrimaryContent = React.memo(
           }}
         />
         <EffectsTree />
+        <FountainParticles
+          count={80}
+          color="lightpink"
+          size={0.03}
+          speed={0.65}
+          spread={0.3}
+          layers-enable={2}
+          castShadow={false}
+          receiveShadow={false}
+        />
         <Castle activeSection={activeSection} scale={[2, 1.6, 2]} />
         <Flower />
         <Stairs />

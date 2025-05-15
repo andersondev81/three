@@ -15,7 +15,6 @@ import {
   NormalBlending,
   VideoTexture,
 } from "three"
-import FountainParticles from "../../components/FountainParticles"
 import RotateAxis from "../../components/helpers/RotateAxis"
 import AtmIframe from "../models/AtmIframe"
 import MirrorIframe from "../models/MirrorIframe"
@@ -1715,16 +1714,6 @@ const CastleModel = ({
       <mesh
         geometry={nodes.water.geometry}
         material={waterMaterial}
-        layers-enable={2}
-        castShadow={false}
-        receiveShadow={false}
-      />
-      <FountainParticles
-        count={80}
-        color="lightpink"
-        size={0.03}
-        speed={0.65}
-        spread={0.3}
         layers-enable={2}
         castShadow={false}
         receiveShadow={false}
