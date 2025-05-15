@@ -8,7 +8,7 @@ export const CAMERA_CONFIG = {
       lerpFactor: 0.1,
       transition: {
         zOffset: 0, // Valor aumentado para intro
-        fovMultiplier: 0.3,
+        fovMultiplier: 0,
       },
     },
     section1: {

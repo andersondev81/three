@@ -295,12 +295,12 @@ window.globalNavigation = {
 const cameraConfig = {
   default: {
     large: [
-      -0.6191818190771635, 1.0420789531859995, 92.27433517944273,
+      -0.6191818190771635, 1.0420789531859995, 192.27433517944273,
       -0.21830679207380707, 1.042078953185994, 0.860456882413919,
     ],
     small: [
-      -0.6191818190771635, 1.0420789531859995, 92.27433517944273,
-      -0.21830679207380707, 1.042078953185994, 0.860456882413919,
+      -0.6191818190771635, 1.0420789531859995, 192.27433517944273,
+      -0.21830679207380707, 1.042078953185994, 1.042078953185994,
     ],
   },
   sections: {
@@ -377,31 +377,54 @@ const useVideoTexture = videoPath => {
   const playAttemptedRef = useRef(false)
 
   useEffect(() => {
-    const video = document.createElement("video")
-    video.src = videoPath
-    video.loop = true
-    video.muted = true
-    video.playsInline = true
-    videoRef.current = video
-    const videoTexture = new VideoTexture(video)
-    videoTexture.minFilter = LinearFilter
-    videoTexture.magFilter = LinearFilter
-    videoTexture.flipY = true
+    try {
+      const video = document.createElement("video")
+      video.src = videoPath
+      video.loop = true
+      video.muted = true
+      video.playsInline = true
+      video.crossOrigin = "anonymous"
+      video.preload = "auto"
+      videoRef.current = video
 
-    setTexture(videoTexture)
-
-    // Cleanup
-    return () => {
-      try {
-        if (video && !video.paused) {
-          video.pause()
+      // Criar textura somente quando o vídeo estiver pronto
+      video.addEventListener("loadeddata", () => {
+        try {
+          const videoTexture = new VideoTexture(video)
+          videoTexture.minFilter = LinearFilter
+          videoTexture.magFilter = LinearFilter
+          videoTexture.flipY = true
+          setTexture(videoTexture)
+        } catch (e) {
+          console.error("Erro ao criar textura de vídeo:", e)
         }
-        video.src = ""
-        videoRef.current = null
-      } catch (e) {
-        console.log("Video cleanup error:", e)
+      })
+
+      // Tratar erros de carregamento
+      video.addEventListener("error", e => {
+        console.error("Erro ao carregar vídeo:", e)
+      })
+
+      // Carregar o vídeo
+      video.load()
+
+      // Cleanup
+      return () => {
+        try {
+          if (video && !video.paused) {
+            video.pause()
+          }
+          video.src = ""
+          video.load()
+          videoRef.current = null
+        } catch (e) {
+          console.log("Video cleanup error:", e)
+        }
+        playAttemptedRef.current = false
       }
-      playAttemptedRef.current = false
+    } catch (error) {
+      console.error("Erro ao inicializar vídeo:", error)
+      return () => {}
     }
   }, [videoPath])
 

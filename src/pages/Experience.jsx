@@ -7,7 +7,13 @@ import React, {
   useCallback,
   useRef,
 } from "react"
-import { useGLTF, Environment, Sparkles, useMask } from "@react-three/drei"
+import {
+  useGLTF,
+  Environment,
+  Sparkles,
+  useMask,
+  Html,
+} from "@react-three/drei"
 import { Canvas, useThree, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 
@@ -60,7 +66,6 @@ const getCanvasConfig = isMobile => ({
     fov: 50,
     near: 0.1,
     far: 1000,
-    position: [15.9, 6.8, -11.4],
   },
   shadows: !isMobile,
 })
@@ -102,7 +107,15 @@ const useCameraAnimation = (section, cameraRef) => {
       const { startPosition, startFov, config } = animationRef.current
       const delta = Math.min((now - animationRef.current.lastTime) / 1000, 0.1)
       animationRef.current.lastTime = now
-      animationRef.current.progress += delta * 1.5
+
+      // Ajustar velocidade baseado na seção
+      if (section === 0 || section === "intro") {
+        // Velocidade para a introdução - ajuste este valor
+        animationRef.current.progress += delta * 0.6 // Valor mais baixo = mais lento
+      } else {
+        // Velocidade normal para outras seções
+        animationRef.current.progress += delta * 1.5
+      }
 
       const t = Math.min(animationRef.current.progress, 1)
       const k = ease(t)
@@ -151,6 +164,94 @@ const useCameraAnimation = (section, cameraRef) => {
   }, [section, camera, cameraRef])
 }
 
+// Este componente serve para carregar recursos e notificar o App quando estiver pronto
+// Este componente serve para carregar recursos e notificar o App quando estiver pronto
+const ResourcePreloader = React.memo(() => {
+  const hasNotifiedRef = useRef(false)
+
+  useEffect(() => {
+    // Pré-carregar texturas críticas
+    const preloadTextures = async () => {
+      try {
+        // Lista de texturas críticas a serem carregadas
+        const texturePaths = [
+          "/images/bg1.jpg",
+          "/images/studio.jpg",
+          "/images/clouds.jpg",
+          "/texture/castleColor.avif",
+          // Adicione outras texturas críticas aqui
+        ]
+
+        // Criar loader de textura
+        const textureLoader = new THREE.TextureLoader()
+
+        // Função para carregar uma textura com timeout
+        const loadTextureWithTimeout = path => {
+          return new Promise((resolve, reject) => {
+            // Timeout de 10 segundos para cada textura
+            const timeoutId = setTimeout(() => {
+              console.warn(`Timeout ao carregar textura: ${path}`)
+              resolve(null) // Resolve com null em vez de rejeitar
+            }, 10000)
+
+            textureLoader.load(
+              path,
+              texture => {
+                clearTimeout(timeoutId)
+                resolve(texture)
+              },
+              undefined, // progress callback
+              error => {
+                clearTimeout(timeoutId)
+                console.error(`Erro ao carregar textura ${path}:`, error)
+                resolve(null) // Resolve com null em vez de rejeitar
+              }
+            )
+          })
+        }
+
+        // Carregar todas as texturas com timeout
+        console.log("🔄 Iniciando carregamento de texturas críticas...")
+        const texturePromises = texturePaths.map(path =>
+          loadTextureWithTimeout(path)
+        )
+        const textures = await Promise.all(texturePromises)
+
+        // Verificar resultados
+        const loadedCount = textures.filter(t => t !== null).length
+        console.log(
+          `✅ Carregadas ${loadedCount} de ${texturePaths.length} texturas`
+        )
+
+        // Mesmo que algumas texturas falhem, continuamos e notificamos o App
+        if (!hasNotifiedRef.current) {
+          console.log("✅ Notificando App que está pronto para começar")
+          if (window.onExperienceLoaded) {
+            window.onExperienceLoaded()
+            hasNotifiedRef.current = true
+          }
+        }
+      } catch (error) {
+        console.error("Erro durante carregamento de texturas:", error)
+
+        // Mesmo com erro, notificar que está "pronto" para não travar a UI
+        if (!hasNotifiedRef.current) {
+          console.log("⚠️ Notificando App apesar de erros no carregamento")
+          if (window.onExperienceLoaded) {
+            window.onExperienceLoaded()
+            hasNotifiedRef.current = true
+          }
+        }
+      }
+    }
+
+    // Iniciar pré-carregamento
+    preloadTextures()
+  }, [])
+
+  return null
+})
+
 // Scene Controller Component
 const SceneController = React.memo(({ section, cameraRef }) => {
   const { camera } = useThree()
@@ -188,65 +289,71 @@ const SceneController = React.memo(({ section, cameraRef }) => {
 })
 
 // Scene Content Components
-const PrimaryContent = React.memo(({ activeSection, onSectionChange }) => {
-  const groundParams = useRef({
-    height: 5,
-    radius: 100,
-    scale: 100,
-  })
+const PrimaryContent = React.memo(
+  ({ activeSection, onSectionChange, isReady }) => {
+    const groundParams = useRef({
+      height: 5,
+      radius: 110,
+      scale: 100,
+    })
 
-  const [forceUpdate, setForceUpdate] = useState(0)
+    const [forceUpdate, setForceUpdate] = useState(0)
 
-  useEffect(() => {
-    if (typeof gsap !== "undefined") {
-      console.log("Start Environment Animation")
+    // Só inicia as animações quando a cena estiver pronta
+    useEffect(() => {
+      if (isReady && typeof gsap !== "undefined") {
+        console.log("Start Environment Animation")
 
-      gsap.to(groundParams.current, {
-        radius: 10,
-        duration: 2.5,
-        delay: 0,
-        ease: "power2.inOut",
-        onUpdate: () => {
-          setForceUpdate(prev => prev + 1)
-        },
-        onComplete: () => {
-          console.log("Animação concluída!")
-        },
-      })
-    }
-  }, [])
+        gsap.to(groundParams.current, {
+          radius: 10,
+          duration: 2,
+          delay: 0,
+          ease: "sine.inOut",
+          onUpdate: () => {
+            setForceUpdate(prev => prev + 1)
+          },
+          onComplete: () => {
+            console.log("Animação concluída!")
+          },
+        })
+      }
+    }, [isReady])
 
-  return (
-    <>
-      <Environment
-        files="/images/CloudsBG.hdr"
-        background
-        resolution={256}
-        ground={{
-          height: groundParams.current.height,
-          radius: groundParams.current.radius,
-          scale: groundParams.current.scale,
-        }}
-      />
-      <EffectsTree />
-      <Castle activeSection={activeSection} scale={[2, 1.6, 2]} />
-      <Flower />
-      <Stairs />
-      <Orb />
-      <Pole
-        position={[-0.8, 0, 5.8]}
-        scale={[0.6, 0.6, 0.6]}
-        onSectionChange={onSectionChange}
-      />
-    </>
-  )
-})
+    return (
+      <>
+        <Environment
+          files="/images/CloudsBG.hdr"
+          background
+          resolution={256}
+          ground={{
+            height: groundParams.current.height,
+            radius: groundParams.current.radius,
+            scale: groundParams.current.scale,
+          }}
+        />
+        <EffectsTree />
+        <Castle activeSection={activeSection} scale={[2, 1.6, 2]} />
+        <Flower />
+        <Stairs />
+        <Orb />
+        <Pole
+          position={[-0.8, 0, 5.8]}
+          scale={[0.6, 0.6, 0.6]}
+          onSectionChange={onSectionChange}
+        />
+      </>
+    )
+  }
+)
 
-const SecondaryContent = React.memo(({ loadedAssets }) => {
+const SecondaryContent = React.memo(({ isReady }) => {
   const cloudGroupRef = useRef()
   const { camera } = useThree()
 
+  // Só executa as atualizações se a cena estiver pronta
   useFrame(() => {
+    if (!isReady) return
+
     const castleCenter = new THREE.Vector3(0, 0, 0)
     const distance = camera.position.distanceTo(castleCenter)
 
@@ -394,8 +501,6 @@ const SecondaryContent = React.memo(({ loadedAssets }) => {
               bounds: [10, 1, 3],
               rotation: [0, 3.14, 0],
             },
-            //{ position: [3.5, 0, -10.0], density:1, segments: 20, bounds: [8,1,6], rotation: [0, 5.2, 0]  },
-            //{ position: [-3.5, 0, -9.0], density:1, segments: 30, bounds: [10,1,6], rotation: [0, 3.14, 0]  },
             //left side
             { position: [-2.55, 0.15, -1], rotation: [0, 1.65, 3.14] },
             { position: [-2.7, 0.15, 0.1], rotation: [3.14, 1.7, 3.14] },
@@ -434,23 +539,28 @@ const SecondaryContent = React.memo(({ loadedAssets }) => {
 const TertiaryContent = React.memo(() => <MirrorIframe />)
 
 // Scene Content Wrapper
-const SceneContent = React.memo(({ activeSection, onSectionChange }) => {
-  return (
-    <>
-      <PrimaryContent
-        activeSection={activeSection}
-        onSectionChange={onSectionChange}
-      />
-      <SecondaryContent />
-      <TertiaryContent />
-    </>
-  )
-})
+const SceneContent = React.memo(
+  ({ activeSection, onSectionChange, isReady }) => {
+    return (
+      <>
+        <ResourcePreloader />
+        <PrimaryContent
+          activeSection={activeSection}
+          onSectionChange={onSectionChange}
+          isReady={isReady}
+        />
+        <SecondaryContent isReady={isReady} />
+        <TertiaryContent />
+      </>
+    )
+  }
+)
 
 // Main Experience Component
-const Experience = () => {
+const Experience = ({ initiallyReady = false }) => {
   const [currentSection, setCurrentSection] = useState(0)
   const [activeSection, setActiveSection] = useState("intro")
+  const [isReady, setIsReady] = useState(initiallyReady)
   const cameraRef = useRef(null)
 
   const isMobile = useMobileDetection()
@@ -471,8 +581,9 @@ const Experience = () => {
     }
   }, [])
 
-  // Setup de eventos globais
+  // Setup de eventos globais e iniciar animações quando pronto
   useEffect(() => {
+    // Configurar manipuladores de eventos globais
     window.customCameraNavigation = handleCustomCameraPosition
     window.onSectionChange = handleSectionChange
 
@@ -484,9 +595,16 @@ const Experience = () => {
 
     window.addEventListener("sectionChange", handleSectionChangeEvent)
 
-    // Iniciar áudio ambiente se necessário
-    if (window.audioManager && window.audioManager.startAmbient) {
-      window.audioManager.startAmbient()
+    // Se initiallyReady for true, já estamos prontos para começar
+    if (initiallyReady && !isReady) {
+      setIsReady(true)
+
+      // Iniciar áudio quando tudo estiver pronto
+      if (window.audioManager && window.audioManager.startAmbient) {
+        setTimeout(() => {
+          window.audioManager.startAmbient()
+        }, 100)
+      }
     }
 
     return () => {
@@ -499,7 +617,7 @@ const Experience = () => {
         window.audioManager.stopAmbient()
       }
     }
-  }, [handleSectionChange, handleCustomCameraPosition])
+  }, [handleSectionChange, handleCustomCameraPosition, initiallyReady, isReady])
 
   return (
     <div className="relative w-full h-screen">
@@ -509,6 +627,7 @@ const Experience = () => {
           <SceneContent
             activeSection={activeSection}
             onSectionChange={handleSectionChange}
+            isReady={isReady}
           />
         </Canvas>
       </div>
