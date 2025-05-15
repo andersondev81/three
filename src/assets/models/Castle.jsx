@@ -384,10 +384,16 @@ const useVideoTexture = videoPath => {
       video.playsInline = true
       video.crossOrigin = "anonymous"
       video.preload = "auto"
-      videoRef.current = video
 
-      // Criar textura somente quando o vídeo estiver pronto
-      video.addEventListener("loadeddata", () => {
+      // Add error event listener before setting src
+      const handleError = e => {
+        console.error("Video loading error:", e)
+        // You might want to set some fallback texture here
+      }
+
+      video.addEventListener("error", handleError)
+
+      const handleLoadedData = () => {
         try {
           const videoTexture = new VideoTexture(video)
           videoTexture.minFilter = LinearFilter
@@ -395,35 +401,26 @@ const useVideoTexture = videoPath => {
           videoTexture.flipY = true
           setTexture(videoTexture)
         } catch (e) {
-          console.error("Erro ao criar textura de vídeo:", e)
+          console.error("Error creating video texture:", e)
         }
-      })
+      }
 
-      // Tratar erros de carregamento
-      video.addEventListener("error", e => {
-        console.error("Erro ao carregar vídeo:", e)
-      })
-
-      // Carregar o vídeo
+      video.addEventListener("loadeddata", handleLoadedData)
       video.load()
 
-      // Cleanup
+      videoRef.current = video
+
       return () => {
-        try {
-          if (video && !video.paused) {
-            video.pause()
-          }
-          video.src = ""
-          video.load()
-          videoRef.current = null
-        } catch (e) {
-          console.log("Video cleanup error:", e)
+        video.removeEventListener("error", handleError)
+        video.removeEventListener("loadeddata", handleLoadedData)
+        if (video && !video.paused) {
+          video.pause()
         }
-        playAttemptedRef.current = false
+        video.src = ""
+        video.load()
       }
     } catch (error) {
-      console.error("Erro ao inicializar vídeo:", error)
-      return () => {}
+      console.error("Error initializing video:", error)
     }
   }, [videoPath])
 
