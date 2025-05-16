@@ -1,9 +1,3 @@
-// AudioManager.js
-// Um sistema completo para gerenciar áudio na aplicação Cupid's Church
-
-// Importar THREE.js se estiver disponível no contexto do navegador
-
-// Classe para representar posições 3D sem depender diretamente do THREE.js
 class Position {
   constructor(x, y, z) {
     this.x = x
@@ -429,8 +423,22 @@ class AudioManager {
 
   // Iniciar áudio ambiente
   startAmbient() {
-    // console.log("playig ambient");
-    this.play("ambient")
+    if (!this.isMuted) {
+      this.play("ambient")
+    }
+  }
+
+  stopAmbient() {
+    this.stop("ambient")
+  }
+
+  setVolume(value) {
+    this.volume = Math.max(0, Math.min(1, value))
+
+    // Aplicar volume a todos os sons
+    Object.keys(this.sounds).forEach(id => {
+      this.sounds[id].audio.volume = this.isMuted ? 0 : this.volume
+    })
   }
 
   // Parar áudio ambiente
