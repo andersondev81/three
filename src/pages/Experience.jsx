@@ -436,13 +436,13 @@ const ResourcePreloader = React.memo(() => {
         // List of audio files to preload - ADJUST PATHS BASED ON YOUR PROJECT STRUCTURE
         const audioPaths = [
           // Specific element sounds
-          "/public/sounds/atmambiance.mp3",
-          "/public/sounds/camerawoosh.MP3",
-          "/public/sounds/daingcoachmirror.MP3",
-          "/public/sounds/fountain.mp3",
-          "/public/sounds/orb.mp3",
-          "/public/sounds/roadmapscroll.mp3",
-          "/public/sounds/templeambiance.mp3",
+          "/sounds/atmambiance.mp3",
+          "/sounds/camerawoosh.MP3",
+          "/sounds/daingcoachmirror.MP3",
+          "/sounds/fountain.mp3",
+          "/sounds/orb.mp3",
+          "/sounds/roadmapscroll.mp3",
+          "/sounds/templeambiance.mp3",
         ]
 
         // On mobile, limit the number of audio files to preload to save bandwidth
