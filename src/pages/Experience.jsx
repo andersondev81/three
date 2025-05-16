@@ -176,23 +176,16 @@ const useCameraAnimation = (section, cameraRef) => {
   }, [section, camera, cameraRef])
 }
 
-/**
- * Component responsible for preloading resources
- * Loads textures, videos, models and audio before starting the experience
- */
 const ResourcePreloader = React.memo(() => {
   const hasNotifiedRef = useRef(false)
   const isMobile = useMobileDetection()
 
   useEffect(() => {
-    // Function to preload all resources (textures, HDRs, videos, audio)
+    // Function to preload all resources (textures, videos, audio)
     const preloadResources = async () => {
       try {
         // 1. Preload critical textures
         await preloadTextures()
-
-        // 2. Check HDR files (optional, since Environment handles this)
-        await preloadHDRs()
 
         // 3. Preload videos
         await preloadVideos()
@@ -320,39 +313,6 @@ const ResourcePreloader = React.memo(() => {
       // Check results
       const loadedCount = textures.filter(t => t !== null).length
       console.log(`✅ Loaded ${loadedCount} of ${texturePaths.length} textures`)
-    }
-
-    // Function to preload HDRs
-    const preloadHDRs = async () => {
-      try {
-        // HDR files are automatically loaded by the Environment component
-        // This function only checks if the HDR files exist
-        console.log("ℹ️ Checking HDR files...")
-
-        const hdrs = ["/images/CloudsBG.hdr"]
-
-        // Check if files exist using fetch
-        const checkPromises = hdrs.map(async path => {
-          try {
-            const response = await fetch(path, { method: "HEAD" })
-            if (response.ok) {
-              console.log(`✅ HDR verified: ${path}`)
-              return path
-            } else {
-              console.warn(`⚠️ HDR not found: ${path}`)
-              return null
-            }
-          } catch (error) {
-            console.warn(`⚠️ Error checking HDR ${path}:`, error)
-            return null
-          }
-        })
-
-        await Promise.all(checkPromises)
-      } catch (error) {
-        console.warn("⚠️ Error checking HDR files:", error)
-        // Don't fail execution, just log the warning
-      }
     }
 
     // Function to preload videos
@@ -673,17 +633,6 @@ const PrimaryContent = React.memo(
 
     return (
       <>
-        <Environment
-          files="/images/CloudsBG2.hdr"
-          background
-          resolution={256}
-          ground={{
-            height: groundParams.current.height,
-            radius: groundParams.current.radius,
-            scale: groundParams.current.scale,
-          }}
-        />
-
         <EffectsTree />
         <FountainParticles
           count={80}
