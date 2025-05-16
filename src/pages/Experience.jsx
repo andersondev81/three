@@ -61,21 +61,23 @@ const useMobileDetection = () => {
  * @returns {Object} Canvas configuration
  */
 const getCanvasConfig = isMobile => ({
-  dpr: isMobile ? 1 : 1.5,
+  dpr: isMobile ? Math.min(window.devicePixelRatio, 1) : 1.5, // Limitar DPR
   gl: {
     antialias: false,
     powerPreference: isMobile ? "low-power" : "high-performance",
     alpha: false,
     depth: true,
-    stencil: true,
+    stencil: false, // Desativar stencil pode ajudar
   },
-  performance: { min: 0.1 },
+  performance: {
+    min: isMobile ? 0.5 : 0.1, // Priorizar performance em mobile
+  },
   camera: {
-    fov: 50,
+    fov: isMobile ? 45 : 50, // Campo de visão menor
     near: 0.1,
-    far: 1000,
+    far: isMobile ? 500 : 1000, // Distância menor
   },
-  shadows: !isMobile,
+  shadows: !isMobile, // Sem sombras em mobile
 })
 
 /**
