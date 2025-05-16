@@ -61,23 +61,21 @@ const useMobileDetection = () => {
  * @returns {Object} Canvas configuration
  */
 const getCanvasConfig = isMobile => ({
-  dpr: isMobile ? Math.min(window.devicePixelRatio, 1) : 1.5, // Limitar DPR
+  dpr: isMobile ? 1 : 1.5,
   gl: {
     antialias: false,
     powerPreference: isMobile ? "low-power" : "high-performance",
     alpha: false,
     depth: true,
-    stencil: false, // Desativar stencil pode ajudar
+    stencil: true,
   },
-  performance: {
-    min: isMobile ? 0.5 : 0.1, // Priorizar performance em mobile
-  },
+  performance: { min: 0.1 },
   camera: {
-    fov: isMobile ? 45 : 50, // Campo de visão menor
+    fov: 50,
     near: 0.1,
-    far: isMobile ? 500 : 1000, // Distância menor
+    far: 1000,
   },
-  shadows: !isMobile, // Sem sombras em mobile
+  shadows: !isMobile,
 })
 
 /**
@@ -178,16 +176,23 @@ const useCameraAnimation = (section, cameraRef) => {
   }, [section, camera, cameraRef])
 }
 
+/**
+ * Component responsible for preloading resources
+ * Loads textures, videos, models and audio before starting the experience
+ */
 const ResourcePreloader = React.memo(() => {
   const hasNotifiedRef = useRef(false)
   const isMobile = useMobileDetection()
 
   useEffect(() => {
-    // Function to preload all resources (textures, videos, audio)
+    // Function to preload all resources (textures, HDRs, videos, audio)
     const preloadResources = async () => {
       try {
         // 1. Preload critical textures
         await preloadTextures()
+
+        // 2. Check HDR files (optional, since Environment handles this)
+        await preloadHDRs()
 
         // 3. Preload videos
         await preloadVideos()
@@ -238,8 +243,6 @@ const ResourcePreloader = React.memo(() => {
         "/texture/GodsWallColor.avif",
         "/texture/castleGodsWall_Roughness.avif",
         "/texture/WallsColor.avif",
-        "/texture/Walls_Roughness.avif",
-        "/texture/floor_Roughness.avif",
         "/texture/PilarsColor.avif",
         "/texture/castlePilars_Roughness.avif",
         "/texture/castlePilars_Metallic.avif",
@@ -315,6 +318,39 @@ const ResourcePreloader = React.memo(() => {
       // Check results
       const loadedCount = textures.filter(t => t !== null).length
       console.log(`✅ Loaded ${loadedCount} of ${texturePaths.length} textures`)
+    }
+
+    // Function to preload HDRs
+    const preloadHDRs = async () => {
+      try {
+        // HDR files are automatically loaded by the Environment component
+        // This function only checks if the HDR files exist
+        console.log("ℹ️ Checking HDR files...")
+
+        const hdrs = ["/images/CloudsBG.hdr"]
+
+        // Check if files exist using fetch
+        const checkPromises = hdrs.map(async path => {
+          try {
+            const response = await fetch(path, { method: "HEAD" })
+            if (response.ok) {
+              console.log(`✅ HDR verified: ${path}`)
+              return path
+            } else {
+              console.warn(`⚠️ HDR not found: ${path}`)
+              return null
+            }
+          } catch (error) {
+            console.warn(`⚠️ Error checking HDR ${path}:`, error)
+            return null
+          }
+        })
+
+        await Promise.all(checkPromises)
+      } catch (error) {
+        console.warn("⚠️ Error checking HDR files:", error)
+        // Don't fail execution, just log the warning
+      }
     }
 
     // Function to preload videos
@@ -635,6 +671,17 @@ const PrimaryContent = React.memo(
 
     return (
       <>
+        <Environment
+          files="/images/CloudsBG2.hdr"
+          background
+          resolution={256}
+          ground={{
+            height: groundParams.current.height,
+            radius: groundParams.current.radius,
+            scale: groundParams.current.scale,
+          }}
+        />
+
         <EffectsTree />
         <FountainParticles
           count={80}

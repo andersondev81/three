@@ -628,7 +628,7 @@ const usecastleGodsWallsMaterial = (
       metalness: metalness,
       blending: NormalBlending,
       envMap: clouds,
-      envMapIntensity: 2.5,
+      envMapIntensity: 2.2,
     }
 
     // Criar o material baseado no tipo selecionado
@@ -676,7 +676,7 @@ const useCastleWallsMaterial = (metalness = 0, roughness = 1) => {
       roughness: 0.2,
       blending: NormalBlending,
       envMap: clouds,
-      envMapIntensity: 1,
+      envMapIntensity: 0.8,
       side: DoubleSide,
       transparent: false,
       alphaTest: 0.05,
@@ -761,7 +761,7 @@ const useFloorMaterial = (metalness = 0, roughness = 1) => {
       metalness: 1.3,
       blending: NormalBlending,
       envMap: clouds,
-      envMapIntensity: 1.2,
+      envMapIntensity: 1,
       side: DoubleSide,
       transparent: false,
       alphaTest: 0.05,
