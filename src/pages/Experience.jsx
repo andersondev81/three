@@ -243,6 +243,7 @@ const ResourcePreloader = React.memo(() => {
         "/texture/GodsWallColor.avif",
         "/texture/castleGodsWall_Roughness.avif",
         "/texture/WallsColor.avif",
+        "/texture/Walls_Roughness.avif",
         "/texture/floor_Roughness.avif",
         "/texture/PilarsColor.avif",
         "/texture/castlePilars_Roughness.avif",
@@ -655,7 +656,8 @@ const PrimaryContent = React.memo(
         console.log("Starting Environment Animation")
 
         gsap.to(groundParams.current, {
-          radius: 10,
+          radius: 13,
+          scale: 22,
           duration: 2,
           delay: 0,
           ease: "sine.inOut",
@@ -672,7 +674,7 @@ const PrimaryContent = React.memo(
     return (
       <>
         <Environment
-          files="/images/CloudsBG.hdr"
+          files="/images/CloudsBG2.hdr"
           background
           resolution={256}
           ground={{
@@ -680,6 +682,15 @@ const PrimaryContent = React.memo(
             radius: groundParams.current.radius,
             scale: groundParams.current.scale,
           }}
+        />
+        <Sparkles
+          count={80}
+          size={Array.from({ length: 25 }, () => 4 + Math.random() * 2)}
+          scale={[10, 3, 10]}
+          position={[0, 6, 0]}
+          speed={0.01}
+          color="#ff00ff"
+          opacity={0.1}
         />
         <EffectsTree />
         <FountainParticles

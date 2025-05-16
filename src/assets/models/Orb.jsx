@@ -20,7 +20,7 @@ const EMISSIVE_COLOR = new Color(0x48cae4)
 // Material configurations
 const createMaterialSettings = (textures, overrides = {}) => ({
   emissive: EMISSIVE_COLOR,
-  emissiveIntensity: 2,
+  emissiveIntensity: 0.5,
   transparent: true,
   alphaTest: 0.005,
   depthTest: true,
@@ -131,8 +131,7 @@ const OrbMesh = React.memo(({ isZoomed, setIsZoomed, onSectionChange }) => {
       if (window.navigationSystem?.clearPositionForElement) {
         window.navigationSystem.clearPositionForElement("orb")
       }
-    }
-    else if (navigationSource === "direct" && window.controls?.current) {
+    } else if (navigationSource === "direct" && window.controls?.current) {
       try {
         const position = window.controls.current.getPosition()
         const target = window.controls.current.getTarget()

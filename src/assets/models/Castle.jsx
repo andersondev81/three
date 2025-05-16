@@ -651,7 +651,7 @@ const usecastleGodsWallsMaterial = (
 const useCastleWallsMaterial = (metalness = 0, roughness = 1) => {
   const textures = useTexture({
     map: "/texture/WallsColor.avif",
-    roughnessMap: "/texture/floor_Roughness.avif",
+    roughnessMap: "/texture/Walls_Roughness.avif",
   })
 
   const clouds = useTexture("/images/bg1.jpg")
@@ -761,7 +761,7 @@ const useFloorMaterial = (metalness = 0, roughness = 1) => {
       metalness: 1.3,
       blending: NormalBlending,
       envMap: clouds,
-      envMapIntensity: 1,
+      envMapIntensity: 1.2,
       side: DoubleSide,
       transparent: false,
       alphaTest: 0.05,
@@ -1143,12 +1143,13 @@ const useAtmMaterial = () => {
         metalnessMap: textures.metalnessMap,
         emissiveMap: textures.materialEmissive,
         transparent: false,
+        alphaTest: 0.05,
         side: DoubleSide,
         blending: NormalBlending,
-        metalness: 1.5,
-        roughness: 0.5,
+        metalness: 1.3,
+        roughness: 1.3,
         emissive: new Color(0xc4627d),
-        emissiveIntensity: -0.5,
+        emissiveIntensity: 3,
         envMap: clouds,
         envMapIntensity: 0.8,
       }),
@@ -1189,11 +1190,11 @@ const useAtmMetalMaterial = () => {
         side: DoubleSide,
         blending: NormalBlending,
         metalness: 1.3,
-        roughness: 0.05,
+        roughness: 1,
         emissive: new Color(0xc4627d),
         emissiveIntensity: 7.5,
         envMap: clouds,
-        envMapIntensity: 1.5,
+        envMapIntensity: 1.3,
       }),
     [textures, clouds]
   )

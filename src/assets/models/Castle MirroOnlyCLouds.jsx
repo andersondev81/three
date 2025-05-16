@@ -1188,7 +1188,7 @@ const useAtmMaterial = () => {
   const textures = useTexture({
     map: "/texture/atmBake1.webp",
     metalnessMap: "/texture/atmMetallicV1.webp",
-    materialEmissive: "/texture/atmEmissiveV2.webp",
+    materialEmissive: "/texture/atmEmissive.webp",
   })
 
   const clouds = useTexture("/images/studio.jpg")
@@ -1232,7 +1232,7 @@ const useAtmMetalMaterial = () => {
   const textures = useTexture({
     map: "/texture/atmBake1.webp",
     metalnessMap: "/texture/atmMetallicV1.webp",
-    materialEmissive: "/texture/atmEmissiveV2.webp",
+    materialEmissive: "/texture/atmEmissive.webp",
   })
 
   const clouds = useTexture("/images/studio.jpg")
