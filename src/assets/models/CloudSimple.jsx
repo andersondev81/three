@@ -7,23 +7,22 @@ import * as THREE from "three"
 const DEFAULT_PROPS = {
   position: [0, 0, 0],
   scale: [0.2, 0.2, 0.2],
-  opacity: 0.6,
+  opacity: 3,
   speed: 0,
-  width: 1,
-  depth: 1,
-  segments: 15,
+  width: 4,
+  depth: 1.5,
+  segments: 25,
   color: "#ffffff",
-  fade: 15,
-  concentration: 0.2,
+  fade: 20,
+  concentration: 1.2,
   windDirection: 0,
   castShadow: false,
   randomness: 0.2,
   sizeAttenuation: true,
-  fixedSeed: 5,
-  layers: 2,
+  fixedSeed: 1,
+  layers: 3,
   density: 0.6,
   bounds: [7, 1, 1],
-  cloudLightIntensity: 0.0,
 }
 
 const CloudSimple = React.memo(
@@ -46,8 +45,6 @@ const CloudSimple = React.memo(
     fixedSeed = DEFAULT_PROPS.fixedSeed,
     layers = DEFAULT_PROPS.layers,
     density = DEFAULT_PROPS.density,
-    bounds = DEFAULT_PROPS.bounds,
-    cloudLightIntensity = DEFAULT_PROPS.cloudLightIntensity,
     ...rest
   }) => {
     const cloudRef = useRef()
@@ -119,7 +116,7 @@ const CloudSimple = React.memo(
             castShadow={i === 0 && castShadow}
             material={cloudMaterial}
             position={layerPosition}
-            bounds={bounds}
+            bounds={[9, 1, 1]}
           />
         )
       })
@@ -178,8 +175,6 @@ CloudSimple.propTypes = {
   fixedSeed: PropTypes.number,
   layers: PropTypes.number,
   density: PropTypes.number,
-  bounds: PropTypes.arrayOf(PropTypes.number),
-  cloudLightIntensity: PropTypes.number,
 }
 
 CloudSimple.displayName = "CloudSimple"
