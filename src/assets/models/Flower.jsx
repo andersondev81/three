@@ -55,7 +55,6 @@ export function Flower(props) {
 
 // Preload assets
 useGLTF.preload("/models/Flower.glb")
-useTexture.preload("/texture/Flowers_Baked_PBR_Diffuse.jpg")
-useTexture.preload("/texture/Flowers_Baked_PBR_Normal.jpg")
-useTexture.preload("/texture/Flowers_Baked_PBR_Alpha.jpg")
-useTexture.preload("/images/bg1.jpg")
+useTexture.preload("/texture/FlowersColor.avif")
+useTexture.preload("/texture/Flowers_Normal.avif")
+useTexture.preload("/texture/Flowers_Alpha.avif")
