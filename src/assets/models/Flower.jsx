@@ -7,6 +7,7 @@ import {
   DoubleSide,
   EquirectangularReflectionMapping,
   Vector2,
+  TangentSpaceNormalMap,
 } from "three"
 import { useThree } from "@react-three/fiber"
 
@@ -62,7 +63,7 @@ export function Flower(props) {
     if (!isMobile && textures.normal) {
       baseConfig.normalMap = textures.normal
       baseConfig.normalScale = new Vector2(2, 2)
-      baseConfig.normalMapType = THREE.TangentSpaceNormalMap
+      baseConfig.normalMapType = TangentSpaceNormalMap
     }
 
     return new MeshStandardMaterial(baseConfig)

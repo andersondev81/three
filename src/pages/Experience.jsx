@@ -17,6 +17,7 @@ import {
 import { Canvas, useThree, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 import FountainParticles from "../components/FountainParticles"
+import StarsSparkles from "../components/StarsSparkles"
 import Castle from "../assets/models/Castle"
 import { CastleUi } from "../assets/models/CastleUi"
 import { Flower } from "../assets/models/Flower"
@@ -26,7 +27,6 @@ import { CloudGroup } from "../assets/models/CloudsGroup"
 import AtmIframe from "../assets/models/AtmIframe"
 import MirrorIframe from "../assets/models/MirrorIframe"
 import Orb from "../assets/models/Orb"
-
 import { CAMERA_CONFIG } from "../components/cameraConfig"
 import { EffectsTree } from "../components/helpers/EffectsTree"
 import EnvMapLoader from "../components/helpers/EnvMapLoader"
@@ -646,8 +646,8 @@ const PrimaryContent = React.memo(
       radius: 110,
       scale: 100,
     })
-
     const [forceUpdate, setForceUpdate] = useState(0)
+    const isMobile = useMobileDetection()
 
     // Start animations when scene is ready
     useEffect(() => {
