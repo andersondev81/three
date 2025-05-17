@@ -681,6 +681,15 @@ const PrimaryContent = React.memo(
             scale: groundParams.current.scale,
           }}
         />
+        <Sparkles
+          count={80}
+          size={Array.from({ length: 25 }, () => 4 + Math.random() * 2)}
+          scale={[10, 3, 10]}
+          position={[0, 6, 0]}
+          speed={0.01}
+          color="#ff00ff"
+          opacity={0.1}
+        />
         <EffectsTree />
         <FountainParticles
           count={80}
