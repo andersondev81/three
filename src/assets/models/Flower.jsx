@@ -1,4 +1,4 @@
-// Flower.jsx - Refatorado para evitar carregamento duplicado e otimizar para mobile
+// Flower.jsx - Optimized for both mobile and desktop with alpha support
 import React, { useMemo } from "react"
 import { useGLTF, useTexture } from "@react-three/drei"
 import {
@@ -6,42 +6,31 @@ import {
   NearestFilter,
   DoubleSide,
   EquirectangularReflectionMapping,
+  Vector2,
 } from "three"
-import * as THREE from "three"
 import { useThree } from "@react-three/fiber"
 
-// Hook customizado para detectar dispositivos móveis
+// Custom mobile detection hook
 const useMobileDetection = () => {
-  // Aproveitar o detector de dispositivos móveis existente no ThreeJS context
   const { size } = useThree()
-  const isMobile = size.width < 768
-  return isMobile
+  return size.width < 768 || /Mobi|Android/i.test(navigator.userAgent)
 }
 
 export function Flower(props) {
   const { nodes } = useGLTF("/models/Flower.glb")
   const isMobile = useMobileDetection()
 
-  // Carregar texturas com base no tipo de dispositivo
-  const textureProps = useMemo(() => {
-    return isMobile
-      ? {
-          // Versão simplificada para dispositivos móveis com menos texturas
-          diffuse: "/texture/FlowersColor.avif",
-          env: "/images/studio.jpg",
-        }
-      : {
-          // Versão completa para desktop
-          diffuse: "/texture/FlowersColor.avif",
-          normal: "/texture/Flowers_Normal.avif",
-          alpha: "/texture/Flowers_Alpha.avif",
-          env: "/images/studio.jpg",
-        }
-  }, [isMobile])
+  // Texture configuration based on device type
+  const textures = useTexture({
+    diffuse: "/texture/FlowersColor.avif",
+    alpha: "/texture/Flowers_Alpha.avif", // Always load alpha for both mobile and desktop
+    ...(!isMobile && {
+      normal: "/texture/Flowers_Normal.avif", // Only load normal map for desktop
+    }),
+    env: "/images/studio.jpg",
+  })
 
-  const textures = useTexture(textureProps)
-
-  // Configure textures - otimizado para evitar reconfigurações desnecessárias
+  // Texture optimization
   useMemo(() => {
     Object.values(textures).forEach(texture => {
       if (texture) {
@@ -50,54 +39,50 @@ export function Flower(props) {
         texture.magFilter = NearestFilter
       }
     })
-
     if (textures.env) {
       textures.env.mapping = EquirectangularReflectionMapping
     }
   }, [textures])
 
-  // Criação do material com base no tipo de dispositivo
+  // Material configuration with alpha support for both platforms
   const material = useMemo(() => {
-    const baseMaterialProps = {
+    const baseConfig = {
       map: textures.diffuse,
+      alphaMap: textures.alpha,
+      transparent: true,
+      alphaTest: isMobile ? 0.1 : 0.2, // Slightly more aggressive alpha test on mobile
+      side: DoubleSide,
       envMap: textures.env,
       envMapIntensity: isMobile ? 0.8 : 1.4,
-      side: DoubleSide,
       roughness: isMobile ? 1.2 : 1,
       metalness: isMobile ? 0.8 : 1.2,
     }
 
-    // Adicionar propriedades extras apenas para desktop
-    if (!isMobile) {
-      if (textures.normal) {
-        baseMaterialProps.normalMap = textures.normal
-        baseMaterialProps.normalScale = new THREE.Vector2(2, 2)
-        baseMaterialProps.normalMapType = THREE.TangentSpaceNormalMap
-      }
-
-      if (textures.alpha) {
-        baseMaterialProps.alphaMap = textures.alpha
-        baseMaterialProps.transparent = true
-        baseMaterialProps.alphaTest = 0.2
-      }
+    // Add normal mapping only for desktop
+    if (!isMobile && textures.normal) {
+      baseConfig.normalMap = textures.normal
+      baseConfig.normalScale = new Vector2(2, 2)
+      baseConfig.normalMapType = THREE.TangentSpaceNormalMap
     }
 
-    return new THREE.MeshStandardMaterial(baseMaterialProps)
+    return new MeshStandardMaterial(baseConfig)
   }, [textures, isMobile])
 
-  // Renderização com tratamento de erro para garantir que não quebre se os nós não estiverem carregados
-  if (!nodes || !nodes.flowers) {
-    console.warn("Flower nodes not loaded yet")
+  // Safe rendering
+  if (!nodes?.flowers?.geometry) {
+    console.warn("Flower model not loaded yet")
     return null
   }
 
   return (
     <group {...props} dispose={null}>
       <group position={[0, 0, 0]}>
-        <mesh geometry={nodes.flowers.geometry} material={material} />
+        <mesh
+          geometry={nodes.flowers.geometry}
+          material={material}
+          frustumCulled={false} // Improve rendering for small elements
+        />
       </group>
     </group>
   )
 }
-
-// Remover preloads duplicados - isso agora é feito centralmente no ResourcePreloader
