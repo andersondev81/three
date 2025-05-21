@@ -1,46 +1,7 @@
-/* Importando as diretrizes do Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definindo as fontes com fallback para maior compatibilidade */
-@font-face {
-  font-family: "Open Sans";
-  src: url("/fonts/OpenSans-Regular.ttf") format("woff2"),
-    url("/fonts/OpenSans-Regular.woff") format("woff"),
-    url("/fonts/OpenSans-Regular.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Open Sans";
-  src: url("/fonts/OpenSans-Italic.woff2") format("woff2"),
-    url("/fonts/OpenSans-Italic.woff") format("woff"),
-    url("/fonts/OpenSans-Italic.ttf") format("truetype");
-  font-weight: normal;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: "Open Sans";
-  src: url("/fonts/OpenSans-Bold.ttf") format("woff2"),
-    url("/fonts/OpenSans-Bold.ttf") format("woff"),
-    url("/fonts/OpenSans-Bold.ttf") format("truetype");
-  font-weight: bold;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Open Sans";
-  src: url("/fonts/OpenSans-SemiBold.ttf") format("woff2"),
-    url("/fonts/OpenSans-SemiBold.woff2") format("woff"),
-    url("/fonts/OpenSans-SemiBold.ttf") format("truetype");
-  font-weight: 600;
-  font-style: normal;
-}
-
-/* Estilos globais para o HTML */
 html {
   margin: 0;
   padding: 0;
@@ -70,7 +31,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Open Sans", sans-serif;
+  font-family: sans-serif;
   font-weight: 600;
   letter-spacing: 0.5px;
 }
@@ -99,7 +60,7 @@ h6 {
 p,
 span,
 div {
-  font-family: "Open Sans", sans-serif;
+  font-family: sans-serif;
   font-weight: normal;
   font-size: 16px;
   line-height: 1.5;
@@ -109,7 +70,7 @@ div {
 /* Estilos para links e botões */
 a,
 button {
-  font-family: "Open Sans", sans-serif;
+  font-family: sans-serif;
   font-weight: bold;
 }
 

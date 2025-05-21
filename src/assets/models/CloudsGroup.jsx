@@ -5,9 +5,9 @@ import CloudSimple from "./CloudSimple"
 const DEFAULT_CLOUD_PROPS = {
   clouds: [],
   commonProps: {
-    fixedSeed: 1, // Seed comum para todas
+    fixedSeed: 1,
     sizeAttenuation: false,
-    segments: 8, // Padrão otimizado
+    segments: 8,
   },
 }
 
@@ -18,7 +18,6 @@ const CloudGroupComponent = ({
   return (
     <>
       {clouds.map((cloud, index) => {
-        // Gera key única baseada em posição e seed
         const positionHash = cloud.position ? cloud.position.join("-") : index
         const cloudKey = `cloud-${commonProps.fixedSeed}-${positionHash}`
 
@@ -39,12 +38,10 @@ CloudGroupComponent.propTypes = {
   clouds: PropTypes.arrayOf(
     PropTypes.shape({
       position: PropTypes.arrayOf(PropTypes.number).isRequired,
-      // Adicione outras props específicas aqui
     })
   ).isRequired,
   commonProps: PropTypes.shape({
     fixedSeed: PropTypes.number,
-    // Outras props comuns
   }),
 }
 

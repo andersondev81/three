@@ -1,105 +1,106 @@
-import { Html, useGLTF } from "@react-three/drei";
-import React, { useEffect, useState, useRef } from "react";
-import RoadmapPage from "../../components/iframes/Roadmap";
-import audioManager from "./AudioManager";
+import { Html, useGLTF } from "@react-three/drei"
+import React, { useEffect, useState, useRef } from "react"
+import RoadmapPage from "../../components/iframes/Roadmap"
+import audioManager from "./AudioManager"
 
 export default function ScrollIframe({
   onReturnToMain,
   isActive = false,
   ...props
 }) {
-  const { nodes } = useGLTF("/models/scrollframe.glb");
-  const [showContent, setShowContent] = useState(false);
-  const [showButtons, setShowButtons] = useState(false);
-  const [opacity, setOpacity] = useState(0);
-  const containerRef = useRef(null);
+  const { nodes } = useGLTF("/models/scrollframe.glb")
+  const [showContent, setShowContent] = useState(false)
+  const [showButtons, setShowButtons] = useState(false)
+  const [opacity, setOpacity] = useState(0)
+  const containerRef = useRef(null)
 
   useEffect(() => {
     if (isActive) {
-      setShowContent(true);
+      setShowContent(true)
 
       if (window.audioManager && window.audioManager.sounds.scroll) {
-        window.audioManager.play('scroll');
+        window.audioManager.play("scroll")
       }
       if (window.audioManager && window.audioManager.sounds.paper) {
-        window.audioManager.play('paper');
+        window.audioManager.play("paper")
       }
 
       const fadeInTimer = setTimeout(() => {
-        setOpacity(1);
+        setOpacity(1)
 
         const buttonTimer = setTimeout(() => {
-          setShowButtons(true);
-        }, 600);
+          setShowButtons(true)
+        }, 600)
 
-        return () => clearTimeout(buttonTimer);
-      }, 800);
+        return () => clearTimeout(buttonTimer)
+      }, 800)
 
       return () => {
-        clearTimeout(fadeInTimer);
+        clearTimeout(fadeInTimer)
         if (window.audioManager && window.audioManager.sounds.scroll) {
-          window.audioManager.stop('scroll');
+          window.audioManager.stop("scroll")
         }
         if (window.audioManager && window.audioManager.sounds.paper) {
-          window.audioManager.stop('paper');
+          window.audioManager.stop("paper")
         }
-      };
+      }
     } else {
-      setOpacity(0);
-      setShowButtons(false);
+      setOpacity(0)
+      setShowButtons(false)
       if (window.audioManager && window.audioManager.sounds.scroll) {
-        window.audioManager.stop('scroll');
+        window.audioManager.stop("scroll")
       }
       if (window.audioManager && window.audioManager.sounds.paper) {
-        window.audioManager.stop('paper');
+        window.audioManager.stop("paper")
       }
 
       const hideTimer = setTimeout(() => {
-        setShowContent(false);
-      }, 500);
+        setShowContent(false)
+      }, 500)
 
-      return () => clearTimeout(hideTimer);
+      return () => clearTimeout(hideTimer)
     }
-  }, [isActive]);
+  }, [isActive])
 
-  const handleBackToMain = (e) => {
+  const handleBackToMain = e => {
     if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault()
+      e.stopPropagation()
     }
 
-    setShowButtons(false);
+    setShowButtons(false)
 
-    setOpacity(0);
+    setOpacity(0)
 
-    const source = window.navigationSystem &&
-                  window.navigationSystem.getNavigationSource ?
-                  window.navigationSystem.getNavigationSource('scroll') : 'direct';
+    const source =
+      window.navigationSystem && window.navigationSystem.getNavigationSource
+        ? window.navigationSystem.getNavigationSource("scroll")
+        : "direct"
 
     if (source === "direct") {
       setTimeout(() => {
         if (window.audioManager) {
-          window.audioManager.play("transition");
+          window.audioManager.play("transition")
         }
-      }, 50);
+      }, 50)
     }
 
     if (window.audioManager && window.audioManager.sounds.scroll) {
-      window.audioManager.stop('scroll');
+      window.audioManager.stop("scroll")
     }
 
     if (window.audioManager && window.audioManager.stopAllAudio) {
-      window.audioManager.stopAllAudio();
+      window.audioManager.stopAllAudio()
     }
 
     setTimeout(() => {
-      setShowContent(false);
+      setShowContent(false)
 
       if (onReturnToMain) {
-        onReturnToMain(source);
+        onReturnToMain(source)
       }
-    }, 500);
-  };
+    }, 500)
+  }
 
   return (
     <group
@@ -182,18 +183,20 @@ export default function ScrollIframe({
                   transition: "all 0.3s ease",
                   zIndex: 20,
                 }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = "#db2777";
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(236, 72, 153, 0.4)";
+                onMouseOver={e => {
+                  e.currentTarget.style.backgroundColor = "#db2777"
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(236, 72, 153, 0.4)"
                 }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ec4899";
-                  e.currentTarget.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
+                onMouseOut={e => {
+                  e.currentTarget.style.backgroundColor = "#ec4899"
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 6px rgba(0, 0, 0, 0.1)"
                 }}
               >
                 {window.navigationSystem &&
-                 window.navigationSystem.getNavigationSource &&
-                 window.navigationSystem.getNavigationSource('scroll') === 'pole'
+                window.navigationSystem.getNavigationSource &&
+                window.navigationSystem.getNavigationSource("scroll") === "pole"
                   ? "Return to Cupid's Church"
                   : "Return to Castle"}
               </button>
@@ -202,7 +205,7 @@ export default function ScrollIframe({
         </Html>
       )}
     </group>
-  );
+  )
 }
 
-useGLTF.preload("/models/scrollframe.glb");
+useGLTF.preload("/models/scrollframe.glb")

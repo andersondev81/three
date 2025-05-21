@@ -3,26 +3,26 @@ import { Cloud } from "@react-three/drei"
 import PropTypes from "prop-types"
 import * as THREE from "three"
 
-// Configurações padrão otimizadas
 const DEFAULT_PROPS = {
   position: [0, 0, 0],
   scale: [0.2, 0.2, 0.2],
-  opacity: 3,
+  opacity: 0.6,
   speed: 0,
-  width: 4,
-  depth: 1.5,
-  segments: 25,
+  width: 1,
+  depth: 1,
+  segments: 15,
   color: "#ffffff",
-  fade: 20,
-  concentration: 1.2,
+  fade: 15,
+  concentration: 0.2,
   windDirection: 0,
   castShadow: false,
   randomness: 0.2,
   sizeAttenuation: true,
-  fixedSeed: 1,
-  layers: 3,
+  fixedSeed: 5,
+  layers: 2,
   density: 0.6,
   bounds: [7, 1, 1],
+  cloudLightIntensity: 0.0,
 }
 
 const CloudSimple = React.memo(
@@ -45,18 +45,17 @@ const CloudSimple = React.memo(
     fixedSeed = DEFAULT_PROPS.fixedSeed,
     layers = DEFAULT_PROPS.layers,
     density = DEFAULT_PROPS.density,
+    bounds = DEFAULT_PROPS.bounds,
+    cloudLightIntensity = DEFAULT_PROPS.cloudLightIntensity,
     ...rest
   }) => {
     const cloudRef = useRef()
     const groupRef = useRef()
-
-    // Calcula a altura com fallback para proporção baseada na largura
     const calculatedHeight = useMemo(
       () => height ?? width * 0.5,
       [height, width]
     )
 
-    // Calcula escala normalizada com base em concentração e densidade
     const normalizedScale = useMemo(() => {
       const baseScale = Array.isArray(scale)
         ? [...scale]
@@ -68,19 +67,17 @@ const CloudSimple = React.memo(
       ]
     }, [scale, concentration, density])
 
-    // Material otimizado para nuvens
     const cloudMaterial = useMemo(() => {
       return new THREE.MeshStandardMaterial({
         color: new THREE.Color(color),
         transparent: true,
         opacity: Math.min(opacity, 0.8),
-        roughness: 0.2, // Ajustado para melhor resposta à luz
+        roughness: 0.2,
         metalness: 0,
         side: THREE.DoubleSide,
       })
     }, [color, opacity])
 
-    // Efeito para animação e rotação
     useEffect(() => {
       if (cloudRef.current) {
         cloudRef.current.rotation.y = windDirection
@@ -89,7 +86,6 @@ const CloudSimple = React.memo(
       }
     }, [windDirection, position])
 
-    // Renderiza camadas de nuvens
     const renderCloudLayers = useMemo(() => {
       return Array.from({ length: layers }).map((_, i) => {
         const layerScale = 1 + i * 0.15
@@ -116,7 +112,7 @@ const CloudSimple = React.memo(
             castShadow={i === 0 && castShadow}
             material={cloudMaterial}
             position={layerPosition}
-            bounds={[9, 1, 1]}
+            bounds={bounds}
           />
         )
       })
@@ -144,9 +140,6 @@ const CloudSimple = React.memo(
         scale={normalizedScale}
         {...rest}
       >
-        {/* Luzes adicionadas aqui */}
-        {/* <ambientLight intensity={0.2} color="#ffffff" /> */}
-
         {renderCloudLayers}
       </group>
     )
@@ -175,6 +168,8 @@ CloudSimple.propTypes = {
   fixedSeed: PropTypes.number,
   layers: PropTypes.number,
   density: PropTypes.number,
+  bounds: PropTypes.arrayOf(PropTypes.number),
+  cloudLightIntensity: PropTypes.number,
 }
 
 CloudSimple.displayName = "CloudSimple"
