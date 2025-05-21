@@ -17,7 +17,6 @@ import {
 import { Canvas, useThree, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 import FountainParticles from "../components/FountainParticles"
-import StarsSparkles from "../components/StarsSparkles"
 import Castle from "../assets/models/Castle"
 import { CastleUi } from "../assets/models/CastleUi"
 import { Flower } from "../assets/models/Flower"
@@ -31,10 +30,6 @@ import { CAMERA_CONFIG } from "../components/cameraConfig"
 import { EffectsTree } from "../components/helpers/EffectsTree"
 import EnvMapLoader from "../components/helpers/EnvMapLoader"
 
-/**
- * Mobile detection hook - detects if device is mobile based on userAgent and screen size
- * @returns {boolean} true if device is mobile
- */
 const useMobileDetection = () => {
   const [isMobile, setIsMobile] = useState(false)
 
@@ -55,11 +50,6 @@ const useMobileDetection = () => {
   return isMobile
 }
 
-/**
- * Canvas configuration based on device type
- * @param {boolean} isMobile - Flag indicating if device is mobile
- * @returns {Object} Canvas configuration
- */
 const getCanvasConfig = isMobile => ({
   dpr: isMobile ? 1 : 1.5,
   gl: {
@@ -78,11 +68,6 @@ const getCanvasConfig = isMobile => ({
   shadows: !isMobile,
 })
 
-/**
- * Hook for camera animation between sections
- * @param {string|number} section - Current section
- * @param {React.RefObject} cameraRef - Reference to camera
- */
 const useCameraAnimation = (section, cameraRef) => {
   const { camera } = useThree()
   const animationRef = React.useRef({
@@ -120,12 +105,9 @@ const useCameraAnimation = (section, cameraRef) => {
       const delta = Math.min((now - animationRef.current.lastTime) / 1000, 0.1)
       animationRef.current.lastTime = now
 
-      // Adjust speed based on section
       if (section === 0 || section === "intro") {
-        // Speed for introduction
-        animationRef.current.progress += delta * 0.6 // Slower
+        animationRef.current.progress += delta * 0.6
       } else {
-        // Normal speed for other sections
         animationRef.current.progress += delta * 1.5
       }
 
@@ -176,47 +158,27 @@ const useCameraAnimation = (section, cameraRef) => {
   }, [section, camera, cameraRef])
 }
 
-/**
- * Component responsible for preloading resources
- * Loads textures, videos, models and audio before starting the experience
- */
 const ResourcePreloader = React.memo(() => {
   const hasNotifiedRef = useRef(false)
   const isMobile = useMobileDetection()
 
   useEffect(() => {
-    // Function to preload all resources (textures, HDRs, videos, audio)
     const preloadResources = async () => {
       try {
-        // 1. Preload critical textures
         await preloadTextures()
-
-        // 2. Check HDR files (optional, since Environment handles this)
         await preloadHDRs()
-
-        // 3. Preload videos
         await preloadVideos()
-
-        // 4. Check 3D models
         await preloadModels()
-
-        // 5. Preload audio files
         await preloadAudio()
 
-        // 6. Notify that we're ready to start
         if (!hasNotifiedRef.current) {
-          console.log("✅ Notifying App that it's ready to start")
           if (window.onExperienceLoaded) {
             window.onExperienceLoaded()
             hasNotifiedRef.current = true
           }
         }
       } catch (error) {
-        console.error("Error during resource loading:", error)
-
-        // Even with errors, notify as "ready" to avoid UI freezes
         if (!hasNotifiedRef.current) {
-          console.log("⚠️ Notifying App despite loading errors")
           if (window.onExperienceLoaded) {
             window.onExperienceLoaded()
             hasNotifiedRef.current = true
@@ -225,16 +187,11 @@ const ResourcePreloader = React.memo(() => {
       }
     }
 
-    // Function to preload textures
     const preloadTextures = async () => {
-      // Complete list of critical textures from Castle and other components
       const texturePaths = [
-        // Environment maps
         "/images/bg1.jpg",
         "/images/studio.jpg",
         "/images/clouds.jpg",
-
-        // Castle textures
         "/texture/castleColor.avif",
         "/texture/castleRoughnessV1.avif",
         "/texture/castleMetallicV1.avif",
@@ -262,18 +219,12 @@ const ResourcePreloader = React.memo(() => {
         "/texture/atmMetallicV1.avif",
         "/texture/atmEmissive.avif",
         "/texture/ScrollColorV1.avif",
-
-        // Flower textures
         "/texture/FlowersColor.avif",
         "/texture/Flowers_Normal.avif",
         "/texture/Flowers_Alpha.avif",
-
-        // Orb textures
         "/texture/Orb_AlphaV1.avif",
         "/texture/Orb_Alpha.avif",
         "/texture/OrbBake_Emissive.avif",
-
-        // Pole textures
         "/texture/PoleColor.avif",
         "/texture/Pole_Metallic.avif",
         "/texture/Pole_Roughness.avif",
@@ -281,16 +232,12 @@ const ResourcePreloader = React.memo(() => {
         "/texture/HeartPoleEmissive.avif",
       ]
 
-      // Create texture loader
       const textureLoader = new THREE.TextureLoader()
 
-      // Function to load a texture with timeout
       const loadTextureWithTimeout = path => {
         return new Promise((resolve, reject) => {
-          // 10 second timeout for each texture
           const timeoutId = setTimeout(() => {
-            console.warn(`Timeout loading texture: ${path}`)
-            resolve(null) // Resolve with null instead of rejecting
+            resolve(null)
           }, 10000)
 
           textureLoader.load(
@@ -299,62 +246,42 @@ const ResourcePreloader = React.memo(() => {
               clearTimeout(timeoutId)
               resolve(texture)
             },
-            undefined, // progress callback
+            undefined,
             error => {
               clearTimeout(timeoutId)
-              console.error(`Error loading texture ${path}:`, error)
-              resolve(null) // Resolve with null instead of rejecting
+              resolve(null)
             }
           )
         })
       }
 
-      // Load all textures with timeout
-      console.log("🔄 Starting critical texture loading...")
       const texturePromises = texturePaths.map(path =>
         loadTextureWithTimeout(path)
       )
-      const textures = await Promise.all(texturePromises)
-
-      // Check results
-      const loadedCount = textures.filter(t => t !== null).length
-      console.log(`✅ Loaded ${loadedCount} of ${texturePaths.length} textures`)
+      await Promise.all(texturePromises)
     }
 
-    // Function to preload HDRs
     const preloadHDRs = async () => {
       try {
-        // HDR files are automatically loaded by the Environment component
-        // This function only checks if the HDR files exist
-        console.log("ℹ️ Checking HDR files...")
-
         const hdrs = ["/images/CloudsBG.hdr"]
 
-        // Check if files exist using fetch
         const checkPromises = hdrs.map(async path => {
           try {
             const response = await fetch(path, { method: "HEAD" })
             if (response.ok) {
-              console.log(`✅ HDR verified: ${path}`)
               return path
             } else {
-              console.warn(`⚠️ HDR not found: ${path}`)
               return null
             }
           } catch (error) {
-            console.warn(`⚠️ Error checking HDR ${path}:`, error)
             return null
           }
         })
 
         await Promise.all(checkPromises)
-      } catch (error) {
-        console.warn("⚠️ Error checking HDR files:", error)
-        // Don't fail execution, just log the warning
-      }
+      } catch (error) {}
     }
 
-    // Function to preload videos
     const preloadVideos = async () => {
       const videoPaths = ["/video/tunnel.mp4", "/video/water.mp4"]
 
@@ -363,10 +290,9 @@ const ResourcePreloader = React.memo(() => {
           const video = document.createElement("video")
           video.preload = "auto"
           video.muted = true
-          video.playsInline = true // Important for iOS
+          video.playsInline = true
 
           const timeoutId = setTimeout(() => {
-            console.warn(`Timeout loading video: ${path}`)
             resolve(null)
           }, 15000)
 
@@ -377,7 +303,6 @@ const ResourcePreloader = React.memo(() => {
 
           video.onerror = error => {
             clearTimeout(timeoutId)
-            console.error(`Error loading video ${path}:`, error)
             resolve(null)
           }
 
@@ -386,15 +311,10 @@ const ResourcePreloader = React.memo(() => {
         })
       }
 
-      console.log("🔄 Starting critical video loading...")
       const videoPromises = videoPaths.map(path => loadVideoWithTimeout(path))
-      const videos = await Promise.all(videoPromises)
-
-      const loadedCount = videos.filter(v => v !== null).length
-      console.log(`✅ Loaded ${loadedCount} of ${videoPaths.length} videos`)
+      await Promise.all(videoPromises)
     }
 
-    // Function to preload 3D models
     const preloadModels = async () => {
       try {
         const modelPaths = [
@@ -404,38 +324,26 @@ const ResourcePreloader = React.memo(() => {
           "/models/Pole.glb",
         ]
 
-        console.log("🔄 Checking 3D models...")
-
-        // Check if files exist using fetch
         const checkPromises = modelPaths.map(async path => {
           try {
             const response = await fetch(path, { method: "HEAD" })
             if (response.ok) {
-              console.log(`✅ Model verified: ${path}`)
               return path
             } else {
-              console.warn(`⚠️ Model not found: ${path}`)
               return null
             }
           } catch (error) {
-            console.warn(`⚠️ Error checking model ${path}:`, error)
             return null
           }
         })
 
         await Promise.all(checkPromises)
-      } catch (error) {
-        console.warn("⚠️ Error checking models:", error)
-        // Don't fail execution, just log the warning
-      }
+      } catch (error) {}
     }
 
-    // Function to preload audio files
     const preloadAudio = async () => {
       try {
-        // List of audio files to preload - ADJUST PATHS BASED ON YOUR PROJECT STRUCTURE
         const audioPaths = [
-          // Specific element sounds
           "/sounds/atmambiance.mp3",
           "/sounds/camerawoosh.MP3",
           "/sounds/daingcoachmirror.MP3",
@@ -445,30 +353,20 @@ const ResourcePreloader = React.memo(() => {
           "/sounds/templeambiance.mp3",
         ]
 
-        // On mobile, limit the number of audio files to preload to save bandwidth
-        const pathsToLoad = isMobile
-          ? audioPaths.slice(0, 5) // Load only the most important sounds on mobile
-          : audioPaths
-
-        console.log("🔄 Starting audio files loading...")
+        const pathsToLoad = isMobile ? audioPaths.slice(0, 5) : audioPaths
 
         const loadAudioWithTimeout = path => {
           return new Promise(resolve => {
-            // Skip audio preloading on some mobile browsers that don't support it well
             if (isMobile && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-              // Just verify file exists but don't preload on iOS
-              console.log(`⏩ Skipping audio preload on iOS: ${path}`)
               resolve(null)
               return
             }
 
             const audio = new Audio()
 
-            // Shorter timeout on mobile to avoid blocking the UI
             const timeout = isMobile ? 8000 : 15000
 
             const timeoutId = setTimeout(() => {
-              console.warn(`Timeout loading audio: ${path}`)
               resolve(null)
             }, timeout)
 
@@ -476,7 +374,6 @@ const ResourcePreloader = React.memo(() => {
               "canplaythrough",
               () => {
                 clearTimeout(timeoutId)
-                console.log(`✅ Audio loaded: ${path}`)
                 resolve(audio)
               },
               { once: true }
@@ -486,7 +383,6 @@ const ResourcePreloader = React.memo(() => {
               "error",
               error => {
                 clearTimeout(timeoutId)
-                console.error(`Error loading audio ${path}:`, error)
                 resolve(null)
               },
               { once: true }
@@ -498,43 +394,30 @@ const ResourcePreloader = React.memo(() => {
           })
         }
 
-        // Verify which files exist before attempting to load them
         const checkPromises = pathsToLoad.map(async path => {
           try {
             const response = await fetch(path, { method: "HEAD" })
             if (response.ok) {
               return path
             } else {
-              console.warn(`⚠️ Audio file not found: ${path}`)
               return null
             }
           } catch (error) {
-            console.warn(`⚠️ Error checking audio ${path}:`, error)
             return null
           }
         })
 
-        // Filter valid paths
         const validPaths = (await Promise.all(checkPromises)).filter(
           path => path !== null
         )
 
-        // Load audio files that exist
         const audioPromises = validPaths.map(path => loadAudioWithTimeout(path))
-        const audios = await Promise.all(audioPromises)
+        await Promise.all(audioPromises)
 
-        // Count successfully loaded files
-        const loadedCount = audios.filter(a => a !== null).length
-        console.log(
-          `✅ Loaded ${loadedCount} of ${validPaths.length} audio files`
-        )
-
-        // Cache preloaded audio for future use
         if (window.audioCache === undefined) {
           window.audioCache = {}
         }
 
-        // Store loaded audio in cache with filenames as keys
         validPaths.forEach((path, index) => {
           if (audios[index] !== null) {
             const filename = path.split("/").pop().split(".")[0]
@@ -542,65 +425,45 @@ const ResourcePreloader = React.memo(() => {
           }
         })
 
-        // Update AudioManager to use preloaded audio if available
         if (window.audioManager) {
-          console.log("✅ Updating AudioManager with preloaded audio files")
-
-          // Add method to use preloaded audio files if not already available
           if (!window.audioManager.getPreloadedAudio) {
             window.audioManager.getPreloadedAudio = function (soundName) {
               if (window.audioCache && window.audioCache[soundName]) {
-                // Return a clone of the cached audio to allow simultaneous playback
                 return window.audioCache[soundName].cloneNode()
               }
               return null
             }
           }
 
-          // Patch the play method to check cache first if not already patched
           const originalPlay = window.audioManager.play
           if (originalPlay && !window.audioManager._patched) {
             window.audioManager._patched = true
             window.audioManager.play = function (soundName, options) {
-              // Try to get preloaded audio first
               const preloadedAudio = this.getPreloadedAudio(soundName)
               if (preloadedAudio) {
-                // Configure the audio
                 if (options) {
                   if (options.volume !== undefined)
                     preloadedAudio.volume = options.volume
                   if (options.loop !== undefined)
                     preloadedAudio.loop = options.loop
                 }
-                // Play it
-                preloadedAudio
-                  .play()
-                  .catch(e => console.error("Audio play error:", e))
+                preloadedAudio.play().catch(e => {})
                 return preloadedAudio
               }
 
-              // Fall back to original method if preloaded audio not available
               return originalPlay.call(this, soundName, options)
             }
           }
         }
-      } catch (error) {
-        console.warn("⚠️ Error during audio preloading:", error)
-        // Don't fail execution, just log the warning
-      }
+      } catch (error) {}
     }
 
-    // Start preloading
     preloadResources()
   }, [isMobile])
 
   return null
 })
 
-/**
- * Scene Controller Component
- * Manages camera and debug tools
- */
 const SceneController = React.memo(({ section, cameraRef }) => {
   const { camera } = useThree()
   const [showPerf, setShowPerf] = useState(false)
@@ -636,9 +499,6 @@ const SceneController = React.memo(({ section, cameraRef }) => {
   )
 })
 
-/**
- * Primary Content of the scene - main elements
- */
 const PrimaryContent = React.memo(
   ({ activeSection, onSectionChange, isReady }) => {
     const groundParams = useRef({
@@ -649,23 +509,37 @@ const PrimaryContent = React.memo(
     const [forceUpdate, setForceUpdate] = useState(0)
     const isMobile = useMobileDetection()
 
-    // Start animations when scene is ready
     useEffect(() => {
-      if (isReady && typeof gsap !== "undefined") {
-        console.log("Starting Environment Animation")
+      function shouldStartCastleAnimations() {
+        return window.shouldStartAnimations === true
+      }
 
-        gsap.to(groundParams.current, {
-          radius: 10,
-          duration: 2,
-          delay: 0,
-          ease: "sine.inOut",
-          onUpdate: () => {
-            setForceUpdate(prev => prev + 1)
-          },
-          onComplete: () => {
-            console.log("Animation completed!")
-          },
-        })
+      function startAnimations() {
+        if (typeof gsap !== "undefined") {
+          gsap.to(groundParams.current, {
+            radius: 13,
+            duration: 2,
+            scale: 22,
+            delay: 0,
+            ease: "sine.inOut",
+            onUpdate: () => {
+              setForceUpdate(prev => prev + 1)
+            },
+          })
+        }
+      }
+
+      if (isReady && shouldStartCastleAnimations()) {
+        startAnimations()
+      } else if (isReady) {
+        const handleStartAnimations = () => {
+          startAnimations()
+        }
+
+        window.addEventListener("startAnimations", handleStartAnimations)
+        return () => {
+          window.removeEventListener("startAnimations", handleStartAnimations)
+        }
       }
     }, [isReady])
 
@@ -715,17 +589,13 @@ const PrimaryContent = React.memo(
   }
 )
 
-/**
- * Secondary Content of the scene - clouds and lighting
- */
 const SecondaryContent = React.memo(({ isReady }) => {
   const cloudGroupRef = useRef()
   const { camera } = useThree()
   const isMobile = useMobileDetection()
 
-  // Adjust clouds based on camera position
   useFrame(() => {
-    if (!isReady) return
+    if (!isReady || !window.shouldStartAnimations) return
 
     const castleCenter = new THREE.Vector3(0, 0, 0)
     const distance = camera.position.distanceTo(castleCenter)
@@ -772,14 +642,12 @@ const SecondaryContent = React.memo(({ isReady }) => {
             transparent: true,
           }}
           clouds={
-            // Reduce cloud count on mobile for better performance
             isMobile
               ? [
-                  // Basic clouds for mobile - fewer and simpler
                   { position: [-0.1, 0, 4.3], fade: 20 },
                   {
                     position: [0, 0, 4.5],
-                    segments: 15, // Reduced segments
+                    segments: 15,
                     bounds: [8, 1, 1.2],
                     fade: 5,
                     opacity: 1.3,
@@ -790,17 +658,14 @@ const SecondaryContent = React.memo(({ isReady }) => {
                     bounds: [1.5, 1, 1],
                     opacity: 1.5,
                   },
-                  // Limited far clouds
                   {
                     position: [0, 0, 5.6],
-                    density: 0.7, // Lower density
-                    segments: 20, // Fewer segments
+                    density: 0.7,
+                    segments: 20,
                     bounds: [10, 1, 6],
                   },
                 ]
               : [
-                  // Full cloud set for desktop
-                  //Front clouds
                   { position: [-0.1, 0, 4.3], fade: 20 },
                   {
                     position: [0, 0, 4.5],
@@ -815,7 +680,6 @@ const SecondaryContent = React.memo(({ isReady }) => {
                     bounds: [1.5, 1, 1],
                     opacity: 1.5,
                   },
-                  //far front
                   {
                     position: [0, 0, 5.6],
                     density: 1,
@@ -846,13 +710,11 @@ const SecondaryContent = React.memo(({ isReady }) => {
                     segments: 30,
                     bounds: [10, 1, 5],
                   },
-                  // right side
                   { position: [0.2, 0, 3.95], rotation: [0, 1.7, 3.3] },
                   { position: [1.6, 0.2, 2.6], rotation: [0, 0.15, 0] },
                   { position: [2.05, 0.15, 2.2], rotation: [0, 1, 0] },
                   { position: [2.65, 0.15, 1.1], rotation: [0, 1.7, 0] },
                   { position: [2.8, 0.1, -0.6], rotation: [0, 1.4, 0] },
-                  // far right
                   {
                     position: [6.6, 0, 2],
                     density: 1,
@@ -874,13 +736,11 @@ const SecondaryContent = React.memo(({ isReady }) => {
                     bounds: [10, 1, 5],
                     rotation: [0, 3.14, 0],
                   },
-                  // rear side
                   { position: [2.9, 0.15, -2.0], rotation: [0, 2, 0] },
                   { position: [1.4, 0.2, -3.35], rotation: [3.14, 0.15, 0] },
                   { position: [-0.1, 0.2, -3.45], rotation: [3.14, 0, 0] },
                   { position: [-1.5, 0.2, -3.35], rotation: [3.14, -0.1, 0] },
                   { position: [-1.75, 0.15, -2.55], rotation: [0, 0.8, 0] },
-                  // far back
                   {
                     position: [0, 0, -6.0],
                     density: 1,
@@ -902,13 +762,11 @@ const SecondaryContent = React.memo(({ isReady }) => {
                     bounds: [10, 1, 3],
                     rotation: [0, 3.14, 0],
                   },
-                  //left side
                   { position: [-2.55, 0.15, -1], rotation: [0, 1.65, 3.14] },
                   { position: [-2.7, 0.15, 0.1], rotation: [3.14, 1.7, 3.14] },
                   { position: [-2, 0.15, 2.4], rotation: [0, -1.1, 0] },
                   { position: [-1, 0.15, 2.75], rotation: [0, -0.4, 0] },
                   { position: [-0.25, 0, 4.2], rotation: [0, -1.9, 0] },
-                  // far left
                   {
                     position: [-6.6, 0, 2.0],
                     density: 1,
@@ -938,14 +796,8 @@ const SecondaryContent = React.memo(({ isReady }) => {
   )
 })
 
-/**
- * Tertiary Content of the scene - additional elements
- */
 const TertiaryContent = React.memo(() => <MirrorIframe />)
 
-/**
- * Wrapper for all scene content
- */
 const SceneContent = React.memo(
   ({ activeSection, onSectionChange, isReady }) => {
     return (
@@ -963,11 +815,6 @@ const SceneContent = React.memo(
   }
 )
 
-/**
- * Main Experience Component
- * @param {Object} props - Component props
- * @param {boolean} props.initiallyReady - Flag indicating if the scene is initially ready
- */
 const Experience = ({ initiallyReady = false }) => {
   const [currentSection, setCurrentSection] = useState(0)
   const [activeSection, setActiveSection] = useState("intro")
@@ -977,13 +824,11 @@ const Experience = ({ initiallyReady = false }) => {
   const isMobile = useMobileDetection()
   const canvasConfig = getCanvasConfig(isMobile)
 
-  // Section change handler
   const handleSectionChange = useCallback((index, sectionName) => {
     setCurrentSection(index)
     setActiveSection(sectionName)
   }, [])
 
-  // Custom camera position handler
   const handleCustomCameraPosition = useCallback((position, target) => {
     if (cameraRef.current?.camera) {
       cameraRef.current.camera.position.set(...position)
@@ -992,9 +837,7 @@ const Experience = ({ initiallyReady = false }) => {
     }
   }, [])
 
-  // Global events setup and audio initialization
   useEffect(() => {
-    // Setup global event handlers
     window.customCameraNavigation = handleCustomCameraPosition
     window.onSectionChange = handleSectionChange
 
@@ -1006,11 +849,9 @@ const Experience = ({ initiallyReady = false }) => {
 
     window.addEventListener("sectionChange", handleSectionChangeEvent)
 
-    // Initialize if already ready
     if (initiallyReady && !isReady) {
       setIsReady(true)
 
-      // Start audio when everything is ready
       if (window.audioManager && window.audioManager.startAmbient) {
         setTimeout(() => {
           window.audioManager.startAmbient()
@@ -1018,15 +859,12 @@ const Experience = ({ initiallyReady = false }) => {
       }
     }
 
-    // Handle page visibility changes (pause audio and animations when page is hidden)
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Page is hidden, pause audio and heavy animations
         if (window.audioManager && window.audioManager.pauseAll) {
           window.audioManager.pauseAll()
         }
       } else {
-        // Page is visible again, resume audio
         if (window.audioManager && window.audioManager.resumeAll) {
           window.audioManager.resumeAll()
         }
@@ -1041,7 +879,6 @@ const Experience = ({ initiallyReady = false }) => {
       delete window.customCameraNavigation
       delete window.onSectionChange
 
-      // Stop audio when component unmounts
       if (window.audioManager && window.audioManager.stopAmbient) {
         window.audioManager.stopAmbient()
       }
@@ -1061,7 +898,6 @@ const Experience = ({ initiallyReady = false }) => {
         </Canvas>
       </div>
 
-      {/* User Interface */}
       <div className="absolute inset-0 z-10 pointer-events-none">
         <div className="w-full h-full">
           <CastleUi
