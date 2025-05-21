@@ -1,65 +1,83 @@
-import create from "zustand"
+import { create } from "zustand"
+
+// Definir índices de seções
+const SECTION_INDICES = {
+  nav: 0,
+  about: 1,
+  aidatingcoach: 2,
+  download: 3,
+  token: 4,
+  roadmap: 5,
+}
 
 export const useNavigationStore = create((set, get) => ({
-  // states
-  currentSection: "intro",
-  lastClickedPositions: { mirror: null, atm: null, scroll: null, orb: null },
+  // Estado atual da seção
+  currentSection: "nav",
+  currentSectionIndex: 0,
+
+  // Posições armazenadas para diferentes elementos
+  storedPositions: {},
+
+  // Fontes de navegação
   navigationSources: {},
-  sectionIndices: {
-    nav: 0,
-    about: 1,
-    aidatingcoach: 2,
-    download: 3,
-    token: 4,
-    roadmap: 5,
-  },
 
-  // actions
-  setCurrentSection: (sectionName, sectionIndex) => {
-    set({ currentSection: sectionName })
+  // Alterar seção atual
+  setCurrentSection: (section, index) =>
+    set({
+      currentSection: section,
+      currentSectionIndex: index,
+    }),
 
-    const event = new CustomEvent("sectionChange", {
-      detail: { sectionName, sectionIndex },
-    })
-    window.dispatchEvent(event)
-  },
-
+  // Armazenar posição de um elemento
   storePosition: (elementId, position, target) => {
     set(state => ({
-      lastClickedPositions: {
-        ...state.lastClickedPositions,
+      storedPositions: {
+        ...state.storedPositions,
         [elementId]: { position, target },
       },
     }))
   },
 
+  // Limpar todas as posições armazenadas
   clearPositions: () =>
     set({
-      lastClickedPositions: {
-        mirror: null,
-        atm: null,
-        scroll: null,
-        orb: null,
-      },
+      storedPositions: {},
+      navigationSources: {},
     }),
 
-  clearPositionForElement: elementId =>
-    set(state => ({
-      lastClickedPositions: {
-        ...state.lastClickedPositions,
-        [elementId]: null,
-      },
-    })),
+  // Limpar posição de um elemento específico
+  clearPositionForElement: elementId => {
+    set(state => {
+      const { [elementId]: _, ...remainingPositions } = state.storedPositions
+      const { [elementId]: __, ...remainingSources } = state.navigationSources
 
-  setNavigationSource: (elementId, source) =>
+      return {
+        storedPositions: remainingPositions,
+        navigationSources: remainingSources,
+      }
+    })
+  },
+
+  // Definir fonte de navegação para um elemento
+  setNavigationSource: (elementId, source) => {
     set(state => ({
       navigationSources: {
         ...state.navigationSources,
         [elementId]: source,
       },
-    })),
+    }))
+  },
 
+  // Obter fonte de navegação de um elemento
   getNavigationSource: elementId => {
     return get().navigationSources[elementId] || "direct"
   },
+
+  // Obter posição de um elemento
+  getPosition: elementId => {
+    return get().storedPositions[elementId]
+  },
+
+  // Índices de seções para referência
+  sectionIndices: SECTION_INDICES,
 }))

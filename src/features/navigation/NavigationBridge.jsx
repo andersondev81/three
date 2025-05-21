@@ -54,9 +54,11 @@ export function NavigationBridge() {
       },
       getPosition: elementId => {
         // Implementar baseado na store
+        console.warn("getPosition not implemented")
       },
       returnToPosition: (elementId, defaultAction) => {
         // Implementar baseado na store
+        console.warn("returnToPosition not implemented")
       },
     }
 
@@ -84,57 +86,4 @@ export function NavigationBridge() {
   ])
 
   return null // Este componente não renderiza nada
-}
-
-// features/audio/AudioBridge.jsx
-import { useEffect } from "react"
-import { useAudioStore } from "../../stores/audioStore"
-
-export function AudioBridge() {
-  const {
-    playSound,
-    stopSound,
-    startAmbient,
-    stopAmbient,
-    stopAllSounds,
-    muted,
-    sounds,
-  } = useAudioStore()
-
-  useEffect(() => {
-    // Criar ponte com o sistema global de áudio
-    window.audioManager = {
-      play: (soundId, options = {}) => {
-        return playSound(soundId, options)
-      },
-      stop: soundId => {
-        stopSound(soundId)
-      },
-      startAmbient: () => {
-        startAmbient()
-      },
-      stopAmbient: () => {
-        stopAmbient()
-      },
-      stopAll: () => {
-        stopAllSounds()
-      },
-      pauseAll: () => {
-        // Implementar baseado na store
-      },
-      resumeAll: () => {
-        // Implementar baseado na store
-      },
-      stopSectionSounds: section => {
-        // Implementar baseado na store
-      },
-      sounds: sounds,
-    }
-
-    return () => {
-      delete window.audioManager
-    }
-  }, [playSound, stopSound, startAmbient, stopAmbient, stopAllSounds, sounds])
-
-  return null
 }

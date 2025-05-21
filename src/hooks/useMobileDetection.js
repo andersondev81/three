@@ -8,14 +8,32 @@ export function useMobileDetection() {
       const userAgent = navigator.userAgent || navigator.vendor || window.opera
       const mobileRegex =
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
-      setIsMobile(mobileRegex.test(userAgent) || window.innerWidth < 768)
+      const isTouchDevice =
+        "ontouchstart" in window || navigator.maxTouchPoints > 0
+
+      setIsMobile(
+        mobileRegex.test(userAgent) || window.innerWidth < 768 || isTouchDevice
+      )
     }
 
+    // Initial check
     checkMobile()
-    window.addEventListener("resize", checkMobile)
 
-    return () => window.removeEventListener("resize", checkMobile)
+    // Debounce resize events
+    const debouncedCheck = debounce(checkMobile, 200)
+    window.addEventListener("resize", debouncedCheck)
+
+    return () => window.removeEventListener("resize", debouncedCheck)
   }, [])
 
   return isMobile
+}
+
+// Simple debounce helper
+function debounce(func, wait) {
+  let timeout
+  return function () {
+    clearTimeout(timeout)
+    timeout = setTimeout(func, wait)
+  }
 }
