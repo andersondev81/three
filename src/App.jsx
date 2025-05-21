@@ -1,99 +1,89 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
+import Experience from "./pages/Experience"
 import { useProgress } from "@react-three/drei"
-import LoadingScreens from "./components/LoadingScreen"
-import ExperienceWrapper from "./components/ExperienceWrapper"
-// version
+import CupidLoad from "./assets/animations/CupidLoad"
+import ToogleLanguage from "./assets/animations/ToogleMusic"
+import { useResourcesStore } from "./stores/resourcesStore"
+import { useAudioStore } from "./stores/audioStore"
+
+const StartScreen = ({ onStart, isAudioOn, toggleAudio }) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black text-white">
+      <div className="text-center">
+        <button
+          onClick={onStart}
+          className="mt-8 px-6 py-3 bg-[#ff3473] text-white rounded-lg text-lg font-semibold hover:bg-[#cc084f] hover:scale-105 transition-all duration-300 ease-in-out transform"
+        >
+          Start Experience
+        </button>
+      </div>
+
+      <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-black bg-opacity-50 px-3 py-2 rounded-lg">
+        <span className="text-sm text-[#ff3473]">Music:</span>
+        <div onClick={toggleAudio} className="flex items-center cursor-pointer">
+          <ToogleLanguage isActive={isAudioOn} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const LoadingScreen = ({ progress }) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black text-white">
+      <div className="text-center">
+        <CupidLoad />
+        <p className="text-xl mt-4 transition-all duration-300">
+          Loading... ({parseInt(progress)}%)
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function App() {
-  const [isLoaded, setIsLoaded] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
+  const [shouldLoad, setShouldLoad] = useState(false)
+  const { setMuted } = useAudioStore()
+  const { isLoading, progress, setLoading } = useResourcesStore()
+  const { progress: threeProgress, active } = useProgress()
   const [isAudioOn, setIsAudioOn] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
-  const resourcesLoadedRef = useRef(false)
-  const progressRef = useRef(0)
-
-  const { progress, active } = useProgress()
-
-  useEffect(() => {
-    if (typeof progress === "number") {
-      progressRef.current = progress
-    }
-  }, [progress])
-
-  useEffect(() => {
-    window.isExperienceStarted = false
-    window.isAudioEnabled = isAudioOn
-    window.shouldStartAnimations = false
-
-    window.onExperienceLoaded = function () {
-      if (!resourcesLoadedRef.current) {
-        resourcesLoadedRef.current = true
-
-        setTimeout(() => {
-          setIsLoaded(true)
-          setIsLoading(false)
-        }, 500)
-      }
-    }
-
-    return () => {
-      window.isExperienceStarted = false
-      window.isAudioEnabled = false
-      window.shouldStartAnimations = false
-      window.onExperienceLoaded = null
-    }
-  }, [])
-
-  useEffect(() => {
-    if (progress === 100 && !active && !resourcesLoadedRef.current) {
-      const timeoutId = setTimeout(() => {
-        if (!resourcesLoadedRef.current) {
-          resourcesLoadedRef.current = true
-          setIsLoaded(true)
-          setIsLoading(false)
-        }
-      }, 3000)
-
-      return () => clearTimeout(timeoutId)
-    }
-  }, [progress, active])
-
   const handleStart = () => {
     setHasStarted(true)
-    window.isExperienceStarted = true
-
-    setTimeout(() => {
-      window.shouldStartAnimations = true
-      const startEvent = new CustomEvent("startAnimations")
-      window.dispatchEvent(startEvent)
-    }, 200)
+    setShouldLoad(true)
   }
-
   const toggleAudio = () => {
-    setIsAudioOn(prev => !prev)
-    window.isAudioEnabled = !window.isAudioEnabled
+    const newState = !isAudioOn
+    setIsAudioOn(newState)
+    setMuted(!newState) // Atualiza o estado na store de áudio
   }
+
+  useEffect(() => {
+    if (shouldLoad && threeProgress === 100 && !active) {
+      const timer = setTimeout(() => {
+        setLoading(false) // Marca como carregado na store
+      }, 500)
+
+      return () => clearTimeout(timer)
+    }
+  }, [threeProgress, active, shouldLoad, setLoading])
+
+  const showExperience = shouldLoad
+  const isFullyLoaded = !isLoading && threeProgress === 100 && !active
 
   return (
     <div className="relative w-full h-screen bg-black">
-      <LoadingScreens
-        hasStarted={hasStarted}
-        onStart={handleStart}
-        isAudioOn={isAudioOn}
-        toggleAudio={toggleAudio}
-        isLoaded={isLoaded}
-        progress={progress}
-        isLoading={isLoading}
-      />
-
-      <div
-        className={`absolute inset-0 ${hasStarted ? "visible" : "invisible"}`}
-      >
-        <ExperienceWrapper
-          initiallyReady={isLoaded}
-          isStarted={hasStarted}
-          animationsEnabled={hasStarted}
+      {!hasStarted ? (
+        <StartScreen
+          onStart={handleStart}
+          isAudioOn={isAudioOn}
+          toggleAudio={toggleAudio}
         />
-      </div>
+      ) : !isFullyLoaded ? (
+        <LoadingScreen progress={threeProgress} />
+      ) : null}
+
+      {showExperience && <Experience initiallyReady={isFullyLoaded} />}
     </div>
   )
 }
