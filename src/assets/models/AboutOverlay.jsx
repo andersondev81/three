@@ -1,8 +1,5 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { X, Heart } from "lucide-react"
-import audioManager from "./AudioManager"
 
 export const AboutOverlay = ({ isVisible, onClose }) => {
   const [mounted, setMounted] = useState(false)
@@ -12,7 +9,7 @@ export const AboutOverlay = ({ isVisible, onClose }) => {
       const timer = setTimeout(() => setMounted(true), 300)
       return () => clearTimeout(timer)
     } else {
-      audioManager.play("transition")
+      window.audioManager?.play("transition")
       setMounted(false)
     }
   }, [isVisible])
@@ -41,7 +38,6 @@ export const AboutOverlay = ({ isVisible, onClose }) => {
         </button>
 
         <div className="space-y-12 text-gray-800 max-w-4xl mx-auto mt-16">
-          {/* Hero Section */}
           <div className="text-center space-y-6">
             <h1 className="text-5xl font-bold text-pink-600">
               Welcome to Cupid's Church
@@ -52,7 +48,6 @@ export const AboutOverlay = ({ isVisible, onClose }) => {
             <Heart className="mx-auto text-pink-500" size={48} />
           </div>
 
-          {/* Immersive Experience */}
           <div className="space-y-4">
             <h2 className="text-3xl font-bold text-pink-600">
               An Immersive Journey to Love
@@ -91,7 +86,6 @@ export const AboutOverlay = ({ isVisible, onClose }) => {
             </div>
           </div>
 
-          {/* Features */}
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-pink-600">
               Divine Features
@@ -124,7 +118,6 @@ export const AboutOverlay = ({ isVisible, onClose }) => {
             </div>
           </div>
 
-          {/* Tech Specs */}
           <div className="space-y-6">
             <h2 className="text-3xl font-bold text-pink-600">
               Technical Enchantment
@@ -146,7 +139,6 @@ export const AboutOverlay = ({ isVisible, onClose }) => {
             </div>
           </div>
 
-          {/* Back to Main Button */}
           <div className="text-center py-8">
             <button
               onClick={onClose}

@@ -30,8 +30,9 @@ const PrimaryContent = React.memo(
         console.log("Starting Environment Animation")
 
         gsap.to(groundParams.current, {
-          radius: 10,
+          radius: 13,
           duration: 2,
+          scale: 22,
           delay: 0,
           ease: "sine.inOut",
           onUpdate: () => {

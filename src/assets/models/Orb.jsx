@@ -1,4 +1,3 @@
-// Orb.jsx - Refatorado para evitar carregamento duplicado e otimizar para mobile
 import React, { useMemo, useRef, useEffect, useState } from "react"
 import { useGLTF, useTexture, Float } from "@react-three/drei"
 import {
@@ -13,20 +12,14 @@ import {
 } from "three"
 import { useFrame, useThree } from "@react-three/fiber"
 
-// Detector de dispositivos móveis otimizado
-const useMobileDetection = () => {
-  const { size } = useThree()
-  const isMobile = size.width < 768
-  return isMobile
-}
-
 // Constants
 const BLOOM_LAYER = new Layers()
 BLOOM_LAYER.set(1)
 const DOUBLE_CLICK_DELAY = 300
 const EMISSIVE_COLOR = new Color(0x48cae4)
 
-// Gerenciador de material otimizado com cache
+import { useMobileDetection } from "../../hooks/useMobileDetection"
+
 const createMaterialManager = () => {
   const materialCache = new Map()
 
@@ -46,10 +39,8 @@ const createMaterialManager = () => {
   }
 }
 
-// Rotating component otimizado
 const RotatingAxis = React.memo(({ axis, speed, children, isMobile }) => {
   const ref = useRef()
-  // Reduzir a velocidade de rotação em dispositivos móveis para melhor desempenho
   const adjustedSpeed = isMobile ? speed * 0.7 : speed
 
   useFrame((_, delta) => {
@@ -60,21 +51,17 @@ const RotatingAxis = React.memo(({ axis, speed, children, isMobile }) => {
   return <group ref={ref}>{children}</group>
 })
 
-// Main Orb Mesh Component
 const OrbMesh = React.memo(
   ({ isZoomed, setIsZoomed, onSectionChange, isMobile }) => {
     const { nodes } = useGLTF("/models/Orbit.glb")
 
-    // Carregar apenas as texturas necessárias com base no tipo de dispositivo
     const textureProps = useMemo(() => {
       return isMobile
         ? {
-            // Versão mobile - menos texturas
             map: "/texture/Orb_AlphaV1.avif",
             alphaMap: "/texture/Orb_Alpha.avif",
           }
         : {
-            // Versão completa para desktop
             map: "/texture/Orb_AlphaV1.avif",
             alphaMap: "/texture/Orb_Alpha.avif",
             emissiveMap: "/texture/OrbBake_Emissive.avif",
@@ -83,7 +70,6 @@ const OrbMesh = React.memo(
 
     const textures = useTexture(textureProps)
 
-    // Configure textures
     useMemo(() => {
       Object.values(textures).forEach(texture => {
         if (texture) {
@@ -94,7 +80,6 @@ const OrbMesh = React.memo(
       })
     }, [textures])
 
-    // Criar materiais otimizados com base no tipo de dispositivo
     const materialManager = useMemo(() => createMaterialManager(), [])
 
     const materials = useMemo(() => {
@@ -109,7 +94,6 @@ const OrbMesh = React.memo(
         side: FrontSide,
       }
 
-      // Adicionar emissive apenas para desktop
       if (!isMobile && textures.emissiveMap) {
         baseSettings.emissive = EMISSIVE_COLOR
         baseSettings.emissiveIntensity = 0.5
@@ -143,7 +127,6 @@ const OrbMesh = React.memo(
     const clickTimerRef = useRef(null)
     const lastClickTimeRef = useRef(0)
 
-    // Setup bloom layer - apenas para desktop
     useEffect(() => {
       if (!isMobile && emissiveGroupRef.current) {
         emissiveGroupRef.current.traverse(child => {
@@ -154,7 +137,6 @@ const OrbMesh = React.memo(
       }
     }, [isMobile])
 
-    // Cleanup
     useEffect(() => {
       return () => {
         if (clickTimerRef.current) {
@@ -163,14 +145,11 @@ const OrbMesh = React.memo(
       }
     }, [])
 
-    // Manipulador de navegação simplificado
     const handleNavigation = (navigationSource = "direct") => {
-      // Reproduzir som de transição
-      if (window.audioManager && window.audioManager.play) {
+      if (window.audioManager?.play) {
         window.audioManager.play("transition")
       }
 
-      // Processar navegação
       if (navigationSource === "pole") {
         if (window.navigationSystem?.clearPositionForElement) {
           window.navigationSystem.clearPositionForElement("orb")
@@ -187,27 +166,21 @@ const OrbMesh = React.memo(
               [target.x, target.y, target.z]
             )
           }
-        } catch (err) {
-          console.error("Failed to store camera position:", err)
-        }
+        } catch (err) {}
       }
 
-      // Configurar fonte de navegação
       if (window.navigationSystem?.setNavigationSource) {
         window.navigationSystem.setNavigationSource("orb", navigationSource)
       }
 
-      // Disparar evento de navegação
       window.dispatchEvent(
         new CustomEvent("orbNavigation", { detail: { section: "about" } })
       )
 
-      // Alternar seção
       if (onSectionChange) {
         onSectionChange(1, "about")
       }
 
-      // Navegação global
       if (window.globalNavigation?.navigateTo) {
         window.globalNavigation.navigateTo("about")
       }
@@ -247,13 +220,10 @@ const OrbMesh = React.memo(
       document.body.style.cursor = "default"
     }
 
-    // Tratamento para nós não carregados
     if (!nodes || !nodes.lineC || !nodes.center) {
-      console.warn("Orb nodes not loaded properly")
       return null
     }
 
-    // Renderizar versão mais simples em dispositivos móveis
     return (
       <group
         position={[1.76, 1.155, -0.883]}
@@ -262,7 +232,6 @@ const OrbMesh = React.memo(
         onPointerLeave={handlePointerLeave}
       >
         <group ref={emissiveGroupRef}>
-          {/* Lines - renderizar menos linhas em dispositivos móveis */}
           <group>
             <RotatingAxis axis="y" speed={1} isMobile={isMobile}>
               <mesh
@@ -271,7 +240,6 @@ const OrbMesh = React.memo(
               />
             </RotatingAxis>
 
-            {/* Reduzir número de elementos animados em dispositivos móveis */}
             {(!isMobile || Math.random() > 0.5) && (
               <RotatingAxis axis="z" speed={6} isMobile={isMobile}>
                 <mesh
@@ -291,7 +259,6 @@ const OrbMesh = React.memo(
             )}
           </group>
 
-          {/* Center */}
           <RotatingAxis axis="y" speed={8} isMobile={isMobile}>
             <mesh
               geometry={nodes.center?.geometry}
@@ -299,7 +266,6 @@ const OrbMesh = React.memo(
             />
           </RotatingAxis>
 
-          {/* Balls - renderizar menos bolas em dispositivos móveis */}
           <group>
             {(!isMobile || Math.random() > 0.3) && (
               <RotatingAxis axis="x" speed={6} isMobile={isMobile}>
@@ -330,7 +296,6 @@ const OrbMesh = React.memo(
           </group>
         </group>
 
-        {/* Sphere effect */}
         <mesh>
           <sphereGeometry args={[0.02, isMobile ? 8 : 16, isMobile ? 8 : 16]} />
           <meshBasicMaterial
@@ -340,7 +305,6 @@ const OrbMesh = React.memo(
           />
         </mesh>
 
-        {/* Renderizar apenas em dispositivos não-móveis ou com probabilidade */}
         {(!isMobile || Math.random() > 0.5) && (
           <RotatingAxis axis="y" speed={-0.5} isMobile={isMobile}>
             <mesh
@@ -356,7 +320,6 @@ const OrbMesh = React.memo(
   }
 )
 
-// Main Orb Component
 const Orb = ({ onSectionChange }) => {
   const [isZoomed, setIsZoomed] = useState(false)
   const floatGroupRef = useRef()
@@ -366,7 +329,6 @@ const Orb = ({ onSectionChange }) => {
   const targetPosition = new Vector3(0.066, 0.25, -0.04)
   const isMobile = useMobileDetection()
 
-  // Ajustar velocidade de transição com base no tipo de dispositivo
   const transitionSpeed = isMobile ? 0.3 : 0.5
 
   useFrame((_, delta) => {
@@ -410,5 +372,4 @@ const Orb = ({ onSectionChange }) => {
   )
 }
 
-// Remover preload duplicado - isso agora é feito centralmente no ResourcePreloader
 export default React.memo(Orb)

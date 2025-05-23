@@ -25,8 +25,14 @@ const DEFAULT_PROPS = {
   cloudLightIntensity: 0.0,
 }
 
-const CloudSimple = React.memo(
-  ({
+// Helper function para random estável baseado em seed
+const seededRandom = seed => {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
+
+const CloudSimple = React.memo(({ ...props }) => {
+  const {
     position = DEFAULT_PROPS.position,
     scale = DEFAULT_PROPS.scale,
     opacity = DEFAULT_PROPS.opacity,
@@ -48,103 +54,102 @@ const CloudSimple = React.memo(
     bounds = DEFAULT_PROPS.bounds,
     cloudLightIntensity = DEFAULT_PROPS.cloudLightIntensity,
     ...rest
-  }) => {
-    const cloudRef = useRef()
-    const groupRef = useRef()
-    const calculatedHeight = useMemo(
-      () => height ?? width * 0.5,
-      [height, width]
-    )
+  } = props
 
-    const normalizedScale = useMemo(() => {
-      const baseScale = Array.isArray(scale)
-        ? [...scale]
-        : [scale, scale, scale]
-      return [
-        baseScale[0] * concentration * density,
-        baseScale[1] * density,
-        baseScale[2] * concentration * density,
+  const cloudRef = useRef()
+  const groupRef = useRef()
+  const calculatedHeight = useMemo(() => height ?? width * 0.5, [height, width])
+
+  const normalizedScale = useMemo(() => {
+    const baseScale = Array.isArray(scale) ? [...scale] : [scale, scale, scale]
+    return [
+      baseScale[0] * concentration * density,
+      baseScale[1] * density,
+      baseScale[2] * concentration * density,
+    ]
+  }, [scale, concentration, density])
+
+  const cloudMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(color),
+      transparent: true,
+      opacity: Math.min(opacity, 0.8),
+      roughness: 0.2,
+      metalness: 0,
+      side: THREE.DoubleSide,
+    })
+  }, [color, opacity])
+
+  useEffect(() => {
+    if (cloudRef.current) {
+      cloudRef.current.rotation.y = windDirection
+      cloudRef.current.rotation.x = (position[0] * 0.02) % Math.PI
+      cloudRef.current.rotation.z = (position[2] * 0.02) % Math.PI
+    }
+  }, [windDirection, position])
+
+  // FIXO: Usar seed para posições estáveis, não Math.random()
+  const renderCloudLayers = useMemo(() => {
+    return Array.from({ length: layers }).map((_, i) => {
+      const layerScale = 1 + i * 0.15
+      const layerOpacity = opacity * (1 - i * 0.15)
+
+      // Usar seeded random baseado no fixedSeed e índice para posições estáveis
+      const seedX = fixedSeed + i * 10 + 1
+      const seedY = fixedSeed + i * 10 + 2
+      const seedZ = fixedSeed + i * 10 + 3
+      const speedSeed = fixedSeed + i * 10 + 4
+
+      const layerPosition = [
+        position[0] + (seededRandom(seedX) - 0.5) * randomness * 2,
+        position[1] + (seededRandom(seedY) - 0.5) * randomness,
+        position[2] + (seededRandom(seedZ) - 0.5) * randomness * 2,
       ]
-    }, [scale, concentration, density])
 
-    const cloudMaterial = useMemo(() => {
-      return new THREE.MeshStandardMaterial({
-        color: new THREE.Color(color),
-        transparent: true,
-        opacity: Math.min(opacity, 0.8),
-        roughness: 0.2,
-        metalness: 0,
-        side: THREE.DoubleSide,
-      })
-    }, [color, opacity])
+      return (
+        <Cloud
+          key={`cloud-layer-${i}`}
+          ref={i === 0 ? cloudRef : null}
+          seed={fixedSeed + i}
+          opacity={layerOpacity}
+          speed={speed * (0.8 + seededRandom(speedSeed) * 0.4)}
+          width={width * layerScale}
+          depth={depth * layerScale}
+          height={calculatedHeight * layerScale}
+          segments={segments}
+          color={color}
+          fade={fade}
+          castShadow={i === 0 && castShadow}
+          material={cloudMaterial}
+          position={layerPosition}
+          bounds={bounds}
+        />
+      )
+    })
+  }, [
+    layers,
+    opacity,
+    speed,
+    width,
+    depth,
+    calculatedHeight,
+    segments,
+    color,
+    fade,
+    castShadow,
+    cloudMaterial,
+    fixedSeed,
+    randomness,
+    position,
+    bounds,
+  ])
 
-    useEffect(() => {
-      if (cloudRef.current) {
-        cloudRef.current.rotation.y = windDirection
-        cloudRef.current.rotation.x = (position[0] * 0.02) % Math.PI
-        cloudRef.current.rotation.z = (position[2] * 0.02) % Math.PI
-      }
-    }, [windDirection, position])
-
-    const renderCloudLayers = useMemo(() => {
-      return Array.from({ length: layers }).map((_, i) => {
-        const layerScale = 1 + i * 0.15
-        const layerOpacity = opacity * (1 - i * 0.15)
-        const layerPosition = [
-          position[0] + (Math.random() - 0.5) * randomness * 2,
-          position[1] + (Math.random() - 0.5) * randomness,
-          position[2] + (Math.random() - 0.5) * randomness * 2,
-        ]
-
-        return (
-          <Cloud
-            key={`cloud-layer-${i}`}
-            ref={i === 0 ? cloudRef : null}
-            seed={fixedSeed + i}
-            opacity={layerOpacity}
-            speed={speed * (0.8 + Math.random() * 0.4)}
-            width={width * layerScale}
-            depth={depth * layerScale}
-            height={calculatedHeight * layerScale}
-            segments={segments}
-            color={color}
-            fade={fade}
-            castShadow={i === 0 && castShadow}
-            material={cloudMaterial}
-            position={layerPosition}
-            bounds={bounds}
-          />
-        )
-      })
-    }, [
-      layers,
-      opacity,
-      speed,
-      width,
-      depth,
-      calculatedHeight,
-      segments,
-      color,
-      fade,
-      castShadow,
-      cloudMaterial,
-      fixedSeed,
-      randomness,
-      position,
-    ])
-
-    return (
-      <group
-        ref={groupRef}
-        position={position}
-        scale={normalizedScale}
-        {...rest}
-      >
-        {renderCloudLayers}
-      </group>
-    )
-  }
-)
+  return (
+    <group ref={groupRef} position={position} scale={normalizedScale} {...rest}>
+      {renderCloudLayers}
+    </group>
+  )
+})
 
 CloudSimple.propTypes = {
   position: PropTypes.arrayOf(PropTypes.number),

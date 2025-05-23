@@ -16,10 +16,9 @@ import {
   VideoTexture,
 } from "three"
 import RotateAxis from "../../components/helpers/RotateAxis"
-import AtmIframe from "../models/AtmIframe"
-import MirrorIframe from "../models/MirrorIframe"
-import ScrollIframe from "../models/ScrolIframe"
-import audioManager from "./AudioManager"
+import AtmIframe from "./AtmIframe"
+import MirrorIframe from "./MirrorIframe"
+import ScrollIframe from "./ScrolIframe"
 
 const SMALL_SCREEN_THRESHOLD = 768
 const TRANSITION_DELAY = 100
@@ -105,7 +104,7 @@ const NavigationSystem = {
     window.navigationSystem = {
       storePosition: (elementId, position, target) => {
         NavigationSystem.positions[elementId] = { position, target }
-        audioManager.play("transition")
+        window.audioManager?.play("transition")
       },
 
       setNavigationSource: (elementId, source) => {
@@ -1538,7 +1537,7 @@ const CastleModel = ({
         onReturnToMain={source => {
           setTimeout(() => {
             setAtmiframeActive(false)
-            audioManager.play("transition")
+            window.audioManager?.play("transition")
             if (source === "pole") {
               onCastleClick("nav")
             } else {
@@ -1629,34 +1628,34 @@ const Castle = ({ activeSection }) => {
     if (!controls.current) return
 
     if (activeSection && activeSection !== sectionName) {
-      audioManager.stopSectionSounds(activeSection)
+      window.audioManager?.stopSectionSounds(activeSection)
     }
 
     setTimeout(() => {
-      if (audioManager.sounds[sectionName]) {
-        audioManager.play(sectionName)
+      if (window.audioManager?.sounds[sectionName]) {
+        window.audioManager.play(sectionName)
       }
 
       switch (sectionName) {
         case "aidatingcoach":
-          if (audioManager.sounds["mirror"]) {
-            audioManager.play("mirror")
+          if (window.audioManager?.sounds["mirror"]) {
+            window.audioManager.play("mirror")
           }
           break
         case "token":
-          if (audioManager.sounds["atm"]) {
-            audioManager.play("atm")
+          if (window.audioManager?.sounds["atm"]) {
+            window.audioManager.play("atm")
           }
-          if (audioManager.sounds["coins"]) {
-            audioManager.play("coins")
+          if (window.audioManager?.sounds["coins"]) {
+            window.audioManager.play("coins")
           }
           break
         case "roadmap":
-          if (audioManager.sounds["scroll"]) {
-            audioManager.play("scroll")
+          if (window.audioManager?.sounds["scroll"]) {
+            window.audioManager.play("scroll")
           }
-          if (audioManager.sounds["paper"]) {
-            audioManager.play("paper")
+          if (window.audioManager?.sounds["paper"]) {
+            window.audioManager.play("paper")
           }
           break
       }
@@ -1697,11 +1696,11 @@ const Castle = ({ activeSection }) => {
   }
 
   useEffect(() => {
-    audioManager.startAmbient()
-    audioManager.preloadAll()
+    window.audioManager?.startAmbient()
+    window.audioManager?.preloadAll()
 
     return () => {
-      audioManager.stopAmbient()
+      window.audioManager?.stopAmbient()
     }
   }, [])
 

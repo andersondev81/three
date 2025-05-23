@@ -1,6 +1,7 @@
 import React from "react"
 import CupidLoad from "../assets/animations/CupidLoad"
 import ToogleLanguage from "../assets/animations/ToogleMusic"
+import { useUIAudio } from "../hooks/useAudio" // ✅ OPCIONAL: Usar o hook
 
 export const LoadingScreen = ({ progress }) => {
   return (
@@ -16,11 +17,19 @@ export const LoadingScreen = ({ progress }) => {
 }
 
 export const StartScreen = ({ onStart, isAudioOn, toggleAudio }) => {
+  // ✅ OPCIONAL: Usar hook para som de clique
+  const { playClick } = useUIAudio()
+
+  const handleStart = () => {
+    playClick() // ✅ Som de clique antes de iniciar
+    onStart()
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black text-white">
       <div className="text-center">
         <button
-          onClick={onStart}
+          onClick={handleStart} // ✅ Usando handler com som
           className="mt-8 px-6 py-3 bg-[#ff3473] text-white rounded-lg text-lg font-semibold hover:bg-[#cc084f] hover:scale-105 transition-all duration-300 ease-in-out transform"
         >
           Start Experience

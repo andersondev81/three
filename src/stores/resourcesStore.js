@@ -1,7 +1,6 @@
 import { create } from "zustand"
 
 export const useResourcesStore = create((set, get) => ({
-  // Estado
   isLoading: true,
   progress: 0,
   loadedResources: {
@@ -11,7 +10,6 @@ export const useResourcesStore = create((set, get) => ({
     videos: [],
   },
 
-  // Configurações de recursos
   resourceConfig: {
     textures: [
       "/images/bg1.jpg",
@@ -73,38 +71,26 @@ export const useResourcesStore = create((set, get) => ({
     ],
     videos: ["/video/tunnel.mp4", "/video/water.mp4", "/video/Mirror.mp4"],
   },
-
-  // Ações
-  setLoading: isLoading => set({ isLoading }),
-
+  // Métodos de gerenciamento
   setProgress: progress =>
     set({
       progress: Math.min(Math.max(progress, 0), 100),
     }),
 
-  registerResource: (type, resource) =>
-    set(state => {
-      const newLoadedResources = { ...state.loadedResources }
-      if (!newLoadedResources[type].includes(resource)) {
-        newLoadedResources[type] = [...newLoadedResources[type], resource]
-      }
-      return { loadedResources: newLoadedResources }
-    }),
-
-  clearResources: () =>
+  preloadResources: async (
+    types = ["textures", "models", "audio", "videos"]
+  ) => {
     set({
+      isLoading: true,
+      progress: 0,
       loadedResources: {
         textures: [],
         models: [],
         audio: [],
         videos: [],
       },
-    }),
+    })
 
-  preloadResources: async (
-    types = ["textures", "models", "audio", "videos"]
-  ) => {
-    const { registerResource, setProgress } = get()
     const totalResources = types.reduce(
       (sum, type) => sum + get().resourceConfig[type].length,
       0
@@ -113,15 +99,19 @@ export const useResourcesStore = create((set, get) => ({
 
     const updateProgress = () => {
       loadedCount++
-      setProgress((loadedCount / totalResources) * 100)
+      const newProgress = Math.round((loadedCount / totalResources) * 100)
+      set({ progress: newProgress })
     }
 
     const preloadPromises = types.flatMap(type =>
       get().resourceConfig[type].map(async path => {
         try {
-          const response = await fetch(path, { method: "HEAD" })
+          const response = await fetch(path, {
+            method: "HEAD",
+            cache: "no-cache",
+          })
+
           if (response.ok) {
-            registerResource(type, path)
             updateProgress()
             return path
           } else {
@@ -137,14 +127,18 @@ export const useResourcesStore = create((set, get) => ({
       })
     )
 
-    await Promise.all(preloadPromises)
-    set({ isLoading: false })
-  },
-
-  // Método para verificar se todos os recursos de um tipo foram carregados
-  areResourcesLoaded: type => {
-    const loadedResources = get().loadedResources[type]
-    const configuredResources = get().resourceConfig[type]
-    return loadedResources.length === configuredResources.length
+    try {
+      await Promise.allSettled(preloadPromises)
+      set({
+        isLoading: false,
+        progress: 100,
+      })
+    } catch (error) {
+      console.error("Resource preloading failed", error)
+      set({
+        isLoading: false,
+        progress: 100,
+      })
+    }
   },
 }))

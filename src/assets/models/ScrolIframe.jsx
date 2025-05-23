@@ -1,7 +1,6 @@
 import { Html, useGLTF } from "@react-three/drei"
 import React, { useEffect, useState, useRef } from "react"
 import RoadmapPage from "../../components/iframes/Roadmap"
-import audioManager from "./AudioManager"
 
 export default function ScrollIframe({
   onReturnToMain,
