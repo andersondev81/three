@@ -12,6 +12,7 @@ import SecondaryContent from "../features/castle/SecondaryContent"
 import TertiaryContent from "../features/castle/TertiaryContent"
 import { NavigationBridge } from "../features/navigation/NavigationBridge"
 import { AudioBridge } from "../features/audio/AudioBridge"
+import { CastleAudioManager } from "../features/audio/CastleAudioManager"
 
 const getCanvasConfig = isMobile => ({
   dpr: isMobile ? 1 : 1.5,
@@ -43,6 +44,7 @@ const SceneContent = React.memo(({ isReady }) => {
 
   return (
     <>
+      <CastleAudioManager isReady={isReady} />
       <PrimaryContent
         activeSection={currentSection}
         onSectionChange={handleSectionChange}
@@ -56,6 +58,7 @@ const SceneContent = React.memo(({ isReady }) => {
 
 const Experience = ({ initiallyReady = false }) => {
   const [isReady, setIsReady] = useState(initiallyReady)
+  const audioInitializedRef = useRef(false)
 
   // Hooks
   const isMobile = useMobileDetection()
@@ -67,7 +70,7 @@ const Experience = ({ initiallyReady = false }) => {
   // Stores
   const { currentSection, setCurrentSection } = useNavigationStore()
   const { setCameraRef } = useCameraStore()
-  const { startAmbient, stopAmbient } = useAudioStore()
+  const { startAmbient, stopAmbient, setUserInteracted } = useAudioStore()
 
   // Sections change handler
   const handleSectionChange = useCallback(
@@ -77,59 +80,78 @@ const Experience = ({ initiallyReady = false }) => {
     [setCurrentSection]
   )
 
+  // Audio initialization with better error handling
+  const initializeAudio = useCallback(() => {
+    if (audioInitializedRef.current) return
+
+    audioInitializedRef.current = true
+
+    // Set user interacted flag
+    setUserInteracted()
+
+    // Start ambient audio after a delay to ensure clean state
+    setTimeout(() => {
+      if (window.isAudioEnabled !== false) {
+        startAmbient()
+      }
+    }, 200)
+  }, [setUserInteracted, startAmbient])
+
   // Clean up function
   useEffect(() => {
-    // Cam Store
+    // Camera Store
     if (cameraRef.current) {
       setCameraRef(cameraRef)
     }
 
-    // glbal section change handler
+    // Global section change handler
     window.onSectionChange = handleSectionChange
 
-    // start ambient audio
+    // Initialize audio when ready
     if (initiallyReady && !isReady) {
       setIsReady(true)
-
-      // start ambient audio after a short delay
-      setTimeout(() => {
-        startAmbient()
-      }, 100)
+      initializeAudio()
     }
 
-    // page visibility change handler
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // stop audio when the page is hidden
-        if (window.audioManager && window.audioManager.pauseAll) {
-          window.audioManager.pauseAll()
-        }
-      } else {
-        // resume audio when the page is visible
-        if (window.audioManager && window.audioManager.resumeAll) {
-          window.audioManager.resumeAll()
-        }
-      }
+    // Add user interaction listeners for audio initialization
+    const handleUserInteraction = () => {
+      initializeAudio()
+      // Remove listeners after first interaction
+      document.removeEventListener("click", handleUserInteraction)
+      document.removeEventListener("touchstart", handleUserInteraction)
+      document.removeEventListener("keydown", handleUserInteraction)
     }
 
-    document.addEventListener("visibilitychange", handleVisibilityChange)
+    document.addEventListener("click", handleUserInteraction, { passive: true })
+    document.addEventListener("touchstart", handleUserInteraction, {
+      passive: true,
+    })
+    document.addEventListener("keydown", handleUserInteraction, {
+      passive: true,
+    })
 
     return () => {
-      // clean up event listeners
+      // Clean up event listeners
+      document.removeEventListener("click", handleUserInteraction)
+      document.removeEventListener("touchstart", handleUserInteraction)
+      document.removeEventListener("keydown", handleUserInteraction)
+
       window.removeEventListener("sectionChange", handleSectionChange)
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
       delete window.onSectionChange
 
-      // stop ambient audio whne component unmounts
+      // Stop ambient audio when component unmounts
       stopAmbient()
+
+      // Reset audio initialization flag
+      audioInitializedRef.current = false
     }
   }, [
     handleSectionChange,
     initiallyReady,
     isReady,
     setCameraRef,
-    startAmbient,
     stopAmbient,
+    initializeAudio,
   ])
 
   return (
@@ -144,7 +166,7 @@ const Experience = ({ initiallyReady = false }) => {
         </Canvas>
       </div>
 
-      {/* Interface do Usuário */}
+      {/* User Interface */}
       <div className="absolute inset-0 z-10 pointer-events-none">
         <div className="w-full h-full">
           <CastleUi

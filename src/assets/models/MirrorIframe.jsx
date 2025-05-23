@@ -78,28 +78,28 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
     // Adicionar um pequeno delay antes de iniciar a animação da mesh
     setTimeout(() => {
       // Animação gradual para a mesh ao longo de 800ms
-      const startTime = Date.now();
-      const duration = 800;
+      const startTime = Date.now()
+      const duration = 800
 
       const animateMesh = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / duration, 1)
 
         // Função de easing para suavizar a transição
-        const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
-        const easedProgress = easeOutCubic(progress);
+        const easeOutCubic = t => 1 - Math.pow(1 - t, 3)
+        const easedProgress = easeOutCubic(progress)
 
         setUiState(prev => ({
           ...prev,
-          meshOpacity: easedProgress
-        }));
+          meshOpacity: easedProgress,
+        }))
 
         if (progress < 1) {
-          requestAnimationFrame(animateMesh);
+          requestAnimationFrame(animateMesh)
         }
-      };
+      }
 
-      requestAnimationFrame(animateMesh);
+      requestAnimationFrame(animateMesh)
     }, 800)
 
     // Animação para o conteúdo HTML
@@ -118,7 +118,7 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
       ...prev,
       opacity: 0,
       meshOpacity: 0,
-      showButtons: false
+      showButtons: false,
     }))
     stopSound("mirror")
 
@@ -132,7 +132,7 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
       ...prev,
       opacity: 0,
       meshOpacity: 0,
-      showButtons: false
+      showButtons: false,
     }))
 
     const source = getNavigationSource("mirror")
@@ -220,7 +220,7 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
               className="mirror-content"
               style={{
                 opacity: uiState.opacity,
-                transition: "opacity 0.5s ease-in-out"
+                transition: "opacity 0.5s ease-in-out",
               }}
             >
               <div className="mirror-page-wrapper">
@@ -232,7 +232,7 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
                   className="justify-center flex flex-col items-center"
                   style={{
                     opacity: uiState.showButtons ? 1 : 0,
-                    transition: "opacity 0.5s ease-in-out"
+                    transition: "opacity 0.5s ease-in-out",
                   }}
                 >
                   <button
