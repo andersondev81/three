@@ -1,26 +1,33 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useProgress } from "@react-three/drei"
 import LoadingScreens from "./pages/LoadingScreen"
 import ExperienceWrapper from "./components/ExperienceWrapper"
 import { AudioProvider } from "./contexts/AudioContext"
+import {
+  onExperienceLoaded,
+  notifyExperienceLoaded,
+  setupLegacyCompatibility,
+  cleanupLegacyCompatibility,
+} from "./utils/experienceLoadingUtils"
 
 function App() {
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [hasStarted, setHasStarted] = useState(false)
+  // ✅ CONSOLIDADO: Um único enum para loading state ao invés de múltiplos booleans
+  const [loadingState, setLoadingState] = useState("loading") // 'loading' | 'loaded' | 'started'
   const [isAudioOn, setIsAudioOn] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
-  const resourcesLoadedRef = useRef(false)
-  const progressRef = useRef(0)
 
   const { progress, active } = useProgress()
 
-  useEffect(() => {
-    if (typeof progress === "number") {
-      progressRef.current = progress
-    }
+  // ✅ ESTADOS DERIVADOS: Calculados ao invés de duplicados
+  const isLoading = loadingState === "loading"
+  const isLoaded = loadingState === "loaded" || loadingState === "started"
+  const hasStarted = loadingState === "started"
+
+  // ✅ MEMO: Evita recálculos desnecessários
+  const progressValue = useMemo(() => {
+    return typeof progress === "number" ? progress : 0
   }, [progress])
 
-  // ✅ SISTEMA DE EVENTOS CENTRALIZADO - substitui window.onExperienceLoaded
+  // ✅ SISTEMA DE EVENTOS CENTRALIZADO
   useEffect(() => {
     const handleExperienceLoaded = event => {
       console.log(
@@ -28,87 +35,62 @@ function App() {
         event.detail || "sem detalhes"
       )
 
-      if (!resourcesLoadedRef.current) {
-        resourcesLoadedRef.current = true
-        console.log("📦 [App] Marcando recursos como carregados...")
+      // ✅ TRANSIÇÃO DE ESTADO ÚNICA
+      if (loadingState === "loading") {
+        console.log("📦 [App] Transicionando loading → loaded")
 
         setTimeout(() => {
-          setIsLoaded(true)
-          setIsLoading(false)
-          console.log(
-            "📦 [App] Estados atualizados: isLoaded=true, isLoading=false"
-          )
+          setLoadingState("loaded")
+          console.log("📦 [App] Estado atualizado: loaded")
         }, 500)
       } else {
         console.log(
-          "📦 [App] Recursos já estavam carregados - ignorando evento duplicado"
+          "📦 [App] Recursos já carregados - ignorando evento duplicado"
         )
       }
     }
 
-    // Escutar evento personalizado
-    document.addEventListener("experienceLoaded", handleExperienceLoaded)
-
-    // Cleanup
-    return () => {
-      document.removeEventListener("experienceLoaded", handleExperienceLoaded)
-    }
-  }, [])
+    const cleanup = onExperienceLoaded(handleExperienceLoaded)
+    return cleanup
+  }, [loadingState]) // ✅ Dependência do estado consolidado
 
   useEffect(() => {
-    window.isExperienceStarted = false
+    window.isExperienceStarted = hasStarted
     window.isAudioEnabled = isAudioOn
-    window.shouldStartAnimations = false
+    window.shouldStartAnimations = hasStarted
 
-    // ❌ REMOVIDO: window.onExperienceLoaded - agora usa sistema de eventos
-    // Manter compatibilidade temporária se algum código ainda usar
-    window.onExperienceLoaded = function () {
-      console.log(
-        "⚠️ [App] window.onExperienceLoaded chamado - redirecionando para evento"
-      )
-      document.dispatchEvent(
-        new CustomEvent("experienceLoaded", {
-          detail: { source: "legacy-callback" },
-        })
-      )
-    }
+    setupLegacyCompatibility()
 
     return () => {
       window.isExperienceStarted = false
       window.isAudioEnabled = false
       window.shouldStartAnimations = false
-      window.onExperienceLoaded = null
+      cleanupLegacyCompatibility()
     }
-  }, [])
+  }, [hasStarted, isAudioOn]) // ✅ Dependências derivadas
 
-  // Fallback com timeout (mantido para robustez)
+  // ✅ FALLBACK OTIMIZADO: Usa estado consolidado
   useEffect(() => {
-    if (progress === 100 && !active && !resourcesLoadedRef.current) {
+    if (progress === 100 && !active && loadingState === "loading") {
       console.log(
-        "📦 [App] Fallback timeout ativado - progress 100% sem recursos carregados"
+        "📦 [App] Fallback timeout ativado - progress 100% ainda em loading"
       )
 
       const timeoutId = setTimeout(() => {
-        if (!resourcesLoadedRef.current) {
-          console.log("📦 [App] Fallback executado - forçando carregamento")
-
-          // Disparar evento ao invés de chamada direta
-          document.dispatchEvent(
-            new CustomEvent("experienceLoaded", {
-              detail: { source: "fallback-timeout" },
-            })
-          )
+        if (loadingState === "loading") {
+          console.log("📦 [App] Fallback executado - forçando loaded")
+          notifyExperienceLoaded("fallback-timeout", { progress, active })
         }
       }, 3000)
 
       return () => clearTimeout(timeoutId)
     }
-  }, [progress, active])
+  }, [progress, active, loadingState])
 
+  // ✅ HANDLER CONSOLIDADO: Uma única transição de estado
   const handleStart = () => {
     console.log("🚀 [App] Experiência iniciada pelo usuário")
-    setHasStarted(true)
-    window.isExperienceStarted = true
+    setLoadingState("started") // ✅ Única mudança de estado
 
     setTimeout(() => {
       window.shouldStartAnimations = true
@@ -119,7 +101,7 @@ function App() {
 
   const toggleAudio = () => {
     setIsAudioOn(prev => !prev)
-    window.isAudioEnabled = !window.isAudioEnabled
+    window.isAudioEnabled = !isAudioOn
   }
 
   return (
@@ -131,7 +113,7 @@ function App() {
           isAudioOn={isAudioOn}
           toggleAudio={toggleAudio}
           isLoaded={isLoaded}
-          progress={progress}
+          progress={progressValue}
           isLoading={isLoading}
         />
 
