@@ -12,16 +12,15 @@ import {
   EquirectangularReflectionMapping,
 } from "three"
 
-// Remove the normalMap import from three/nodes - not needed for basic material
 import { RGBELoader } from "three/addons/loaders/RGBELoader.js"
 
 const useStairsMaterial = () => {
-const textures = useTexture({
-  map: "/texture/stairsColor.avif",
-  normalMap: "/texture/stairs_Normal.avif",
-  alphaMap: "/texture/stairs_Alpha.avif",
-  roughnessMap: "/texture/stairs_Roughness.avif",
-})
+  const textures = useTexture({
+    map: "/texture/stairsColor.avif",
+    normalMap: "/texture/stairs_Normal.avif",
+    alphaMap: "/texture/stairs_Alpha.avif",
+    roughnessMap: "/texture/stairs_Roughness.avif",
+  })
 
   // load Environment
   const envMap = useLoader(TextureLoader, "/images/bg1.jpg")
@@ -79,5 +78,3 @@ export function Stairs(props) {
     </group>
   )
 }
-
-useGLTF.preload("/models/stairs.glb")

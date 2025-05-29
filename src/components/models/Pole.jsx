@@ -1,4 +1,4 @@
-import { useGLTF, useTexture } from "@react-three/drei" // Adicionei useGLTF de volta aqui
+import { useGLTF, useTexture } from "@react-three/drei"
 import { useLoader } from "@react-three/fiber"
 import { useMemo } from "react"
 import * as THREE from "three"
@@ -20,60 +20,77 @@ const TEXTURE_SETTINGS = {
   magFilter: NearestFilter,
 }
 
-// Caminhos dos environment maps separados
-const POLE_ENV_MAP_PATH = "/images/studio.jpg"
-const HEARTS_ENV_MAP_PATH = "/images/studio.jpg"
+// OTIMIZADO: Carregamento consolidado de todas as texturas do Pole
+const usePoleTextures = () => {
+  return useTexture({
+    // Pole textures
+    poleColor: "/texture/PoleColor.avif",
+    poleMetallic: "/texture/Pole_Metallic.avif",
+    poleRoughness: "/texture/Pole_Roughness.avif",
+
+    // Hearts textures
+    heartColor: "/texture/heartColor.avif",
+    heartEmissive: "/texture/HeartPoleEmissive.avif",
+
+    // Environment maps
+    studioEnv: "/images/studio.jpg",
+  })
+}
 
 const usePoleMaterial = () => {
-  const textures = useTexture({
-    map: "/texture/PoleColor.avif",
-    metalnessMap: "/texture/Pole_Metallic.avif",
-    roughnessMap: "/texture/Pole_Roughness.avif",
-  })
-
-  const envMap = useLoader(TextureLoader, POLE_ENV_MAP_PATH)
-  envMap.mapping = EquirectangularReflectionMapping
+  const textures = usePoleTextures()
 
   useMemo(() => {
-    Object.values(textures).forEach(texture => {
+    // Configure pole textures
+    ;[
+      textures.poleColor,
+      textures.poleMetallic,
+      textures.poleRoughness,
+    ].forEach(texture => {
       if (texture) Object.assign(texture, TEXTURE_SETTINGS)
     })
+
+    if (textures.studioEnv) {
+      textures.studioEnv.mapping = EquirectangularReflectionMapping
+    }
   }, [textures])
 
   return useMemo(
     () =>
       new MeshStandardMaterial({
-        ...textures,
-        envMap,
+        map: textures.poleColor,
+        metalnessMap: textures.poleMetallic,
+        roughnessMap: textures.poleRoughness,
+        envMap: textures.studioEnv,
         envMapIntensity: 2,
         side: DoubleSide,
         roughness: 0.7,
         metalness: 0.7,
       }),
-    [textures, envMap]
+    [textures]
   )
 }
 
 const useHeartsMaterial = () => {
-  const textures = useTexture({
-    map: "/texture/heartColor.avif",
-    emissiveMap: "/texture/HeartPoleEmissive.avif",
-  })
-
-  const envMap = useLoader(TextureLoader, HEARTS_ENV_MAP_PATH)
-  envMap.mapping = EquirectangularReflectionMapping
+  const textures = usePoleTextures()
 
   useMemo(() => {
-    Object.values(textures).forEach(texture => {
+    // Configure hearts textures
+    ;[textures.heartColor, textures.heartEmissive].forEach(texture => {
       if (texture) Object.assign(texture, TEXTURE_SETTINGS)
     })
+
+    if (textures.studioEnv) {
+      textures.studioEnv.mapping = EquirectangularReflectionMapping
+    }
   }, [textures])
 
   return useMemo(
     () =>
       new MeshPhysicalMaterial({
-        ...textures,
-        envMap,
+        map: textures.heartColor,
+        emissiveMap: textures.heartEmissive,
+        envMap: textures.studioEnv,
         side: DoubleSide,
         emissive: new THREE.Color(0x00bdff),
         emissiveIntensity: 6,
@@ -81,44 +98,50 @@ const useHeartsMaterial = () => {
         roughness: 0.5,
         envMapIntensity: 3.5,
       }),
-    [textures, envMap]
+    [textures]
   )
 }
 
 const useFlowersMaterial = () => {
-  const textures = useTexture({
-    map: "/texture/PoleColor.avif",
-    metalnessMap: "/texture/Pole_Metallic.avif",
-    roughnessMap: "/texture/Pole_Roughness.avif",
-  })
-
-  const envMap = useLoader(TextureLoader, POLE_ENV_MAP_PATH)
-  envMap.mapping = EquirectangularReflectionMapping
+  const textures = usePoleTextures()
 
   useMemo(() => {
-    Object.values(textures).forEach(texture => {
+    // Configure flowers textures (reusing pole textures)
+    ;[
+      textures.poleColor,
+      textures.poleMetallic,
+      textures.poleRoughness,
+    ].forEach(texture => {
       if (texture) Object.assign(texture, TEXTURE_SETTINGS)
     })
+
+    if (textures.studioEnv) {
+      textures.studioEnv.mapping = EquirectangularReflectionMapping
+    }
   }, [textures])
 
   return useMemo(
     () =>
       new MeshStandardMaterial({
-        ...textures,
-        envMap,
+        map: textures.poleColor,
+        metalnessMap: textures.poleMetallic,
+        roughnessMap: textures.poleRoughness,
+        envMap: textures.studioEnv,
         envMapIntensity: 1,
         side: DoubleSide,
         roughness: 1,
         metalness: 0.5,
       }),
-    [textures, envMap]
+    [textures]
   )
 }
+
 export function Pole({ onSectionChange, ...props }) {
   const { nodes } = useGLTF("/models/Pole.glb")
   const material = usePoleMaterial()
   const materialHearts = useHeartsMaterial()
   const materialFlowers = useFlowersMaterial()
+
   const createClickHandler = (sectionIndex, sectionName) => e => {
     e.stopPropagation()
     // console.log(`Pole: Clicked on section ${sectionName}`)
@@ -254,5 +277,3 @@ export function Pole({ onSectionChange, ...props }) {
     </group>
   )
 }
-
-useGLTF.preload("/models/Pole.glb")

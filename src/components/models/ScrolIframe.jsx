@@ -207,5 +207,3 @@ export default function ScrollIframe({
     </group>
   )
 }
-
-useGLTF.preload("/models/scrollframe.glb")
