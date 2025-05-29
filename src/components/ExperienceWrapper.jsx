@@ -29,15 +29,12 @@ const ExperienceWrapper = ({
         window.dispatchEvent(startEvent)
       }
 
-      // ✅ REMOVIDO: Chamada duplicada para startAmbient
-      // O AudioBridge já gerencia o início do áudio ambiente
-      // if (window.audioManager && window.audioManager.startAmbient) {
-      //   window.audioManager.startAmbient()
-      // }
+      if (window.audioManager && window.audioManager.startAmbient) {
+        window.audioManager.startAmbient()
+      }
     }
 
     return () => {
-      // ✅ MANTIDO: Cleanup é sempre bom
       if (window.audioManager && window.audioManager.stopAmbient) {
         window.audioManager.stopAmbient()
       }
