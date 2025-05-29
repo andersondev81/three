@@ -449,13 +449,22 @@ const updateSpatialSounds = cameraPosition => {
 
   const maxOrbDistance = 1.5
 
+  // ORB SOUND - CORRIGIDO para lazy loading
   if (window.audioManager.sounds.orb) {
     if (distToOrb < maxOrbDistance) {
       const attenuationOrb = 1 - Math.pow(distToOrb / maxOrbDistance, 3)
       const orbVolume = Math.max(0, 0.2 * attenuationOrb)
 
       if (orbVolume > 0.05) {
-        window.audioManager.sounds.orb.audio.volume = orbVolume
+        // CRIAR áudio se não existir (lazy loading)
+        if (!window.audioManager.sounds.orb.audio) {
+          window.audioManager.createAudioElement("orb")
+        }
+
+        // AGORA é seguro acessar .audio
+        if (window.audioManager.sounds.orb.audio) {
+          window.audioManager.sounds.orb.audio.volume = orbVolume
+        }
 
         if (!window.audioManager.sounds.orb.isPlaying) {
           window.audioManager.play("orb")
@@ -481,14 +490,22 @@ const updateSpatialSounds = cameraPosition => {
 
   const maxFountainDistance = 3.5
 
+  // FOUNTAIN SOUND - CORRIGIDO para lazy loading
   if (window.audioManager.sounds.fountain) {
     if (distToFountain < maxFountainDistance) {
       const attenuationFountain = 1 - distToFountain / maxFountainDistance
-
       const fountainVolume = Math.max(0, 0.2 * attenuationFountain)
 
       if (fountainVolume > 0.02) {
-        window.audioManager.sounds.fountain.audio.volume = fountainVolume
+        // CRIAR áudio se não existir (lazy loading)
+        if (!window.audioManager.sounds.fountain.audio) {
+          window.audioManager.createAudioElement("fountain")
+        }
+
+        // AGORA é seguro acessar .audio
+        if (window.audioManager.sounds.fountain.audio) {
+          window.audioManager.sounds.fountain.audio.volume = fountainVolume
+        }
 
         if (!window.audioManager.sounds.fountain.isPlaying) {
           window.audioManager.play("fountain")

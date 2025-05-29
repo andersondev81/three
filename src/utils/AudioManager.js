@@ -35,10 +35,11 @@ class AudioManager {
     }
 
     this.setupSoundCategories()
-    this.setupSounds()
+    this.setupSoundsOptimized() // ← OTIMIZADO
     this.canAutoplay = false
-    this.checkAutoplay()
+    this.checkAutoplayOptimized() // ← OTIMIZADO
   }
+
   killAllAudio() {
     console.log("🔇 MATANDO TODOS OS ÁUDIOS...")
     let stopped = 0
@@ -146,6 +147,7 @@ class AudioManager {
       return false
     }
   }
+
   setupSoundCategories() {
     this.soundCategories = {
       ambient: ["ambient", "water", "fountain", "heartbeat", "portal", "orb"],
@@ -192,76 +194,108 @@ class AudioManager {
     )
   }
 
-  setupSounds() {
-    this.registerSound("transition", "../sounds/camerawoosh.MP3", {
-      loop: false,
-      volume: 0.1,
-    })
+  // OTIMIZADO: Setup consolidado de áudios
+  setupSoundsOptimized() {
+    // Definir todos os sons em uma estrutura consolidada
+    const soundsConfig = [
+      {
+        id: "transition",
+        path: "../sounds/camerawoosh.MP3",
+        volume: 0.1,
+        loop: false,
+      },
+      {
+        id: "aidatingcoach",
+        path: "../sounds/daingcoachmirror.MP3",
+        volume: 0.1,
+        loop: true,
+      },
+      {
+        id: "token",
+        path: "../sounds/atmambiance.mp3",
+        volume: 0.1,
+        loop: true,
+      },
+      {
+        id: "roadmap",
+        path: "../sounds/roadmapscroll.mp3",
+        volume: 0.1,
+        loop: true,
+      },
+      {
+        id: "ambient",
+        path: "../sounds/templeambiance.mp3",
+        volume: this.ambientVolume,
+        loop: true,
+      },
+      { id: "orb", path: "../sounds/orb.mp3", volume: 0.3, loop: true },
+      { id: "fountain", path: "/sounds/fountain.mp3", volume: 0.3, loop: true },
+    ]
 
-    this.registerSound("aidatingcoach", "../sounds/daingcoachmirror.MP3", {
-      loop: true,
-      volume: 0.1,
-    })
-    this.registerSound("token", "../sounds/atmambiance.mp3", {
-      loop: true,
-      volume: 0.1,
-    })
-    this.registerSound("roadmap", "../sounds/roadmapscroll.mp3", {
-      loop: true,
-      volume: 0.1,
-    })
-
-    this.registerSound("ambient", "../sounds/templeambiance.mp3", {
-      loop: true,
-      volume: this.ambientVolume,
-    })
-    this.registerSound("orb", "../sounds/orb.mp3", {
-      loop: true,
-      volume: 0.3,
-    })
-    this.registerSound("fountain", "/sounds/fountain.mp3", {
-      loop: true,
-      volume: 0.3,
+    // OTIMIZAÇÃO: Criar todos os áudios de uma vez só com lazy loading
+    soundsConfig.forEach(config => {
+      this.sounds[config.id] = {
+        path: config.path,
+        volume: config.volume,
+        loop: config.loop,
+        isPlaying: false,
+        audio: null, // ← Lazy loading: só cria quando necessário
+      }
     })
   }
 
-  checkAutoplay() {
+  // OTIMIZADO: Verificação de autoplay mais eficiente
+  checkAutoplayOptimized() {
+    // Só verifica autoplay quando realmente necessário
+    this.canAutoplay = false
+
+    // Adiado para primeira tentativa de reprodução
+    this.autoplayTested = false
+  }
+
+  // OTIMIZADO: Lazy loading de áudio
+  createAudioElement(id) {
+    if (!this.sounds[id] || this.sounds[id].audio) return
+
+    const config = this.sounds[id]
     const audio = new Audio()
-    audio.volume = 0
 
-    const playPromise = audio.play()
+    // Configuração mínima para evitar preload
+    audio.preload = "none" // ← OTIMIZAÇÃO: Não fazer preload automático
+    audio.src = config.path
+    audio.volume = config.volume
+    audio.loop = false // Sempre false no elemento - controle manual
 
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          this.canAutoplay = true
-          audio.pause()
-        })
-        .catch(error => {
-          this.canAutoplay = false
-        })
-    }
+    this.sounds[id].audio = audio
   }
 
+  // OTIMIZADO: Registro de som sem criar elemento imediatamente
   registerSound(id, path, options = {}) {
-    const audio = new Audio()
-    audio.src = path
-    audio.volume = options.volume || this.volume
-
-    audio.loop = false
-
     this.sounds[id] = {
-      audio: audio,
+      path: path,
       volume: options.volume || this.volume,
+      loop: options.loop || false,
       isPlaying: false,
-      loop: false,
+      audio: null, // ← Lazy loading
     }
   }
 
   play(id) {
     if (this.isMuted || !this.sounds[id]) return
 
+    // Lazy loading: criar áudio só quando necessário
+    if (!this.sounds[id].audio) {
+      this.createAudioElement(id)
+    }
+
     const sound = this.sounds[id]
+    if (!sound.audio) return
+
+    // Teste de autoplay na primeira reprodução
+    if (!this.autoplayTested) {
+      this.autoplayTested = true
+      this.canAutoplay = true // Assumir que pode - fallback se necessário
+    }
 
     sound.audio.loop = false
     if (id === "ambient") {
@@ -275,12 +309,13 @@ class AudioManager {
     if (playPromise !== undefined) {
       playPromise.catch(error => {
         sound.isPlaying = false
+        this.canAutoplay = false
       })
     }
   }
 
   stop(id) {
-    if (!this.sounds[id]) return
+    if (!this.sounds[id] || !this.sounds[id].audio) return
 
     const sound = this.sounds[id]
     if (sound.isPlaying) {
@@ -291,7 +326,7 @@ class AudioManager {
   }
 
   pause(id) {
-    if (!this.sounds[id]) return
+    if (!this.sounds[id] || !this.sounds[id].audio) return
 
     const sound = this.sounds[id]
     if (sound.isPlaying) {
@@ -302,7 +337,14 @@ class AudioManager {
   resume(id) {
     if (this.isMuted || !this.sounds[id]) return
 
+    // Lazy loading se necessário
+    if (!this.sounds[id].audio) {
+      this.createAudioElement(id)
+    }
+
     const sound = this.sounds[id]
+    if (!sound.audio) return
+
     if (sound.isPlaying) {
       sound.audio.volume = 0
 
@@ -340,7 +382,12 @@ class AudioManager {
   }
 
   fadeOut(id, duration = 1000) {
-    if (!this.sounds[id] || !this.sounds[id].isPlaying) return
+    if (
+      !this.sounds[id] ||
+      !this.sounds[id].audio ||
+      !this.sounds[id].isPlaying
+    )
+      return
 
     const sound = this.sounds[id]
     const originalVolume = sound.audio.volume
@@ -380,32 +427,39 @@ class AudioManager {
 
     setTimeout(() => {
       if (this.sounds[toId]) {
-        this.sounds[toId].audio.volume = 0
-        this.play(toId)
+        // Lazy loading se necessário
+        if (!this.sounds[toId].audio) {
+          this.createAudioElement(toId)
+        }
 
-        const fadeSteps = 20
-        const targetVolume = this.sounds[toId].volume
-        const volumeIncrement = targetVolume / fadeSteps
-        const stepDuration = duration / 2 / fadeSteps
+        if (this.sounds[toId].audio) {
+          this.sounds[toId].audio.volume = 0
+          this.play(toId)
 
-        let currentStep = 0
-        const fadeInterval = setInterval(() => {
-          currentStep++
-          const newVolume = Math.min(
-            targetVolume,
-            currentStep * volumeIncrement
-          )
-          if (this.sounds[toId] && this.sounds[toId].audio) {
-            this.sounds[toId].audio.volume = newVolume
-          }
+          const fadeSteps = 20
+          const targetVolume = this.sounds[toId].volume
+          const volumeIncrement = targetVolume / fadeSteps
+          const stepDuration = duration / 2 / fadeSteps
 
-          if (currentStep >= fadeSteps) {
-            clearInterval(fadeInterval)
+          let currentStep = 0
+          const fadeInterval = setInterval(() => {
+            currentStep++
+            const newVolume = Math.min(
+              targetVolume,
+              currentStep * volumeIncrement
+            )
             if (this.sounds[toId] && this.sounds[toId].audio) {
-              this.sounds[toId].audio.volume = targetVolume
+              this.sounds[toId].audio.volume = newVolume
             }
-          }
-        }, stepDuration)
+
+            if (currentStep >= fadeSteps) {
+              clearInterval(fadeInterval)
+              if (this.sounds[toId] && this.sounds[toId].audio) {
+                this.sounds[toId].audio.volume = targetVolume
+              }
+            }
+          }, stepDuration)
+        }
       }
     }, duration / 2)
   }
@@ -445,11 +499,17 @@ class AudioManager {
       this.sounds.ambient.volume = this.ambientVolume
 
       if (this.ambientVolume === 0) {
-        this.sounds.ambient.audio.pause()
-        this.sounds.ambient.audio.volume = 0
-        this.sounds.ambient.isPlaying = false
+        if (this.sounds.ambient.audio) {
+          this.sounds.ambient.audio.pause()
+          this.sounds.ambient.audio.volume = 0
+          this.sounds.ambient.isPlaying = false
+        }
       } else {
-        this.sounds.ambient.audio.volume = this.isMuted ? 0 : this.ambientVolume
+        if (this.sounds.ambient.audio) {
+          this.sounds.ambient.audio.volume = this.isMuted
+            ? 0
+            : this.ambientVolume
+        }
         if (!this.sounds.ambient.isPlaying && !this.isMuted) {
           this.play("ambient")
         }
@@ -461,7 +521,8 @@ class AudioManager {
     this.volume = Math.max(0, Math.min(1, value))
 
     Object.keys(this.sounds).forEach(id => {
-      if (id !== "ambient") {
+      if (id !== "ambient" && this.sounds[id].audio) {
+        // CORRIGIDO: Verificar se audio existe antes de acessar volume
         this.sounds[id].audio.volume = this.isMuted ? 0 : this.volume
       }
     })
@@ -471,7 +532,10 @@ class AudioManager {
     this.isMuted = !this.isMuted
 
     Object.keys(this.sounds).forEach(id => {
-      this.sounds[id].audio.muted = this.isMuted
+      // CORRIGIDO: Verificar se audio existe antes de acessar muted
+      if (this.sounds[id].audio) {
+        this.sounds[id].audio.muted = this.isMuted
+      }
     })
 
     return this.isMuted
@@ -621,7 +685,10 @@ class AudioManager {
 
       if (window.audioManager && window.audioManager.sounds.orb) {
         if (orbVolume > 0.01) {
-          window.audioManager.sounds.orb.audio.volume = orbVolume
+          // CORRIGIDO: Verificar se audio existe antes de acessar volume
+          if (window.audioManager.sounds.orb.audio) {
+            window.audioManager.sounds.orb.audio.volume = orbVolume
+          }
 
           if (!window.audioManager.sounds.orb.isPlaying) {
             window.audioManager.play("orb")
@@ -665,7 +732,10 @@ class AudioManager {
 
       if (volume > 0.01) {
         if (this.sounds[soundId]) {
-          this.sounds[soundId].audio.volume = volume
+          // CORRIGIDO: Verificar se audio existe antes de acessar volume
+          if (this.sounds[soundId].audio) {
+            this.sounds[soundId].audio.volume = volume
+          }
 
           if (!this.sounds[soundId].isPlaying) {
             console.log(
@@ -691,8 +761,10 @@ class AudioManager {
   stopAllAudio() {
     Object.keys(this.sounds).forEach(id => {
       if (id !== "ambient" && this.sounds[id] && this.sounds[id].isPlaying) {
-        this.sounds[id].audio.pause()
-        this.sounds[id].audio.currentTime = 0
+        if (this.sounds[id].audio) {
+          this.sounds[id].audio.pause()
+          this.sounds[id].audio.currentTime = 0
+        }
         this.sounds[id].isPlaying = false
       }
     })
@@ -707,8 +779,10 @@ class AudioManager {
     ]
     criticalSounds.forEach(id => {
       if (id !== "ambient" && this.sounds[id]) {
-        this.sounds[id].audio.pause()
-        this.sounds[id].audio.currentTime = 0
+        if (this.sounds[id].audio) {
+          this.sounds[id].audio.pause()
+          this.sounds[id].audio.currentTime = 0
+        }
         this.sounds[id].isPlaying = false
       }
     })
@@ -738,12 +812,17 @@ class AudioManager {
     }
   }
 
+  // ADICIONADO: Método preloadAll para compatibilidade (agora otimizado)
   preloadAll() {
-    Object.keys(this.sounds).forEach(id => {
-      const sound = this.sounds[id]
-      sound.audio.load()
-    })
+    // Não fazer preload imediato - apenas preparar estruturas
+    // Os áudios serão carregados sob demanda quando play() for chamado
+    console.log(
+      "[AudioManager] preloadAll() chamado - usando lazy loading otimizado"
+    )
   }
+
+  // REMOVIDO: preloadAll() - não fazer preload automático
+  // Os áudios são carregados sob demanda quando necessário
 }
 
 const audioManager = new AudioManager()
