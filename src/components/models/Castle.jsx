@@ -1,3 +1,4 @@
+import { useVideoTexture } from "../../hooks/useVideoTexture"
 import { CameraControls, useGLTF } from "@react-three/drei"
 import { useFrame } from "@react-three/fiber"
 import { Select } from "@react-three/postprocessing"
@@ -337,103 +338,6 @@ const cameraConfig = {
   },
 }
 
-const useVideoTexture = videoPath => {
-  const [texture, setTexture] = useState(null)
-  const videoRef = useRef(null)
-  const playAttemptedRef = useRef(false)
-
-  useEffect(() => {
-    try {
-      const video = document.createElement("video")
-      video.src = videoPath
-      video.loop = true
-      video.muted = true
-      video.playsInline = true
-      video.crossOrigin = "anonymous"
-      video.preload = "auto"
-
-      const handleError = e => {}
-
-      video.addEventListener("error", handleError)
-
-      const handleLoadedData = () => {
-        try {
-          const videoTexture = new VideoTexture(video)
-          videoTexture.minFilter = LinearFilter
-          videoTexture.magFilter = LinearFilter
-          videoTexture.flipY = true
-          setTexture(videoTexture)
-        } catch (e) {}
-      }
-
-      video.addEventListener("loadeddata", handleLoadedData)
-      video.load()
-
-      videoRef.current = video
-
-      return () => {
-        video.removeEventListener("error", handleError)
-        video.removeEventListener("loadeddata", handleLoadedData)
-        if (video && !video.paused) {
-          video.pause()
-        }
-        video.src = ""
-        video.load()
-      }
-    } catch (error) {}
-  }, [videoPath])
-
-  const playVideo = useCallback(() => {
-    if (!videoRef.current || playAttemptedRef.current) return
-
-    setTimeout(() => {
-      if (videoRef.current) {
-        playAttemptedRef.current = true
-        try {
-          const playPromise = videoRef.current.play()
-
-          if (playPromise !== undefined) {
-            playPromise.catch(err => {
-              playAttemptedRef.current = false
-            })
-          }
-        } catch (e) {
-          playAttemptedRef.current = false
-        }
-      }
-    }, 100)
-  }, [])
-
-  return { texture, playVideo }
-}
-
-//Portal Material
-const usePortalMaterial = () => {
-  return useMemo(() => {
-    const video = document.createElement("video")
-    video.src = "/video/tunnel.mp4"
-    video.loop = true
-    video.muted = true
-    video.playsInline = true
-    video.autoplay = true
-
-    const videoTexture = new THREE.VideoTexture(video)
-    videoTexture.minFilter = THREE.LinearFilter
-    videoTexture.magFilter = THREE.LinearFilter
-    videoTexture.flipY = false
-
-    return new THREE.MeshBasicMaterial({
-      map: videoTexture,
-      side: THREE.DoubleSide,
-      toneMapped: false,
-      fog: false,
-      transparent: false,
-      alphaTest: 0,
-      color: new THREE.Color(0xffffff),
-    })
-  }, [])
-}
-
 const updateSpatialSounds = cameraPosition => {
   if (!window.audioManager || !window.audioManager.sounds) {
     return
@@ -557,17 +461,19 @@ const CastleModel = ({
   const atmMaterial = useAtmMaterial()
   const AtmMetalMaterial = useAtmMetalMaterial()
   const scrollMaterial = useScrollMaterial()
-  const portal = usePortalMaterial()
   const mirror = useMirrorMaterial(activeSection)
   const hallosMaterial = useHallosMaterial()
   const wingsMaterial = useWingsMaterial()
 
-  useFrame(({ camera }) => {
-    updateSpatialSounds(camera.position)
-  })
-
-  const { texture: portalTexture, playVideo: playPortal } =
-    useVideoTexture("/video/tunnel.mp4")
+  const { texture: portalTexture, play: playPortal } = useVideoTexture(
+    "/video/tunnel.mp4",
+    {
+      loop: true,
+      muted: true,
+      playsInline: true,
+      preload: "metadata",
+    }
+  )
   const portalMaterial = useMemo(
     () =>
       portalTexture
@@ -581,6 +487,10 @@ const CastleModel = ({
           }),
     [portalTexture]
   )
+
+  useFrame(({ camera }) => {
+    updateSpatialSounds(camera.position)
+  })
 
   const mirrorHandlers = NavigationSystem.createElementHandlers(
     "mirror",
@@ -603,8 +513,16 @@ const CastleModel = ({
     scrollIframeActive
   )
 
-  const { texture: waterTexture, playVideo: playWater } =
-    useVideoTexture("/video/water.mp4")
+  const { texture: waterTexture, play: playWater } = useVideoTexture(
+    "/video/water.mp4",
+    {
+      loop: true,
+      muted: true,
+      playsInline: true,
+      preload: "metadata",
+    }
+  )
+
   const waterMaterial = useMemo(
     () =>
       waterTexture
@@ -646,17 +564,6 @@ const CastleModel = ({
     }
   }, [])
 
-  useFrame(({ camera }) => {
-    updateSpatialSounds(camera.position)
-  })
-
-  useEffect(() => {
-    if (hasInteracted) {
-      playPortal()
-      playWater()
-    }
-  }, [hasInteracted, onPortalPlay])
-
   useEffect(() => {
     if (hasInteracted) {
       playPortal()
@@ -664,7 +571,7 @@ const CastleModel = ({
       if (onPortalPlay) onPortalPlay()
       if (onWaterPlay) onWaterPlay()
     }
-  }, [hasInteracted, onPortalPlay, onWaterPlay])
+  }, [hasInteracted, playPortal, playWater, onPortalPlay, onWaterPlay])
 
   return (
     <group dispose={null}>

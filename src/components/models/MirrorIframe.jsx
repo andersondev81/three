@@ -1,7 +1,8 @@
 import { Html, useGLTF } from "@react-three/drei"
-import React, { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState } from "react"
 import * as THREE from "three"
 import MirrorPage from "../iframes/Mirror"
+import { useVideoTexture } from "../../hooks/useVideoTexture"
 
 const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
   // Estados
@@ -12,61 +13,39 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
     meshOpacity: 0,
   })
 
-  // Referências
-  const videoRef = useRef()
-  const textureRef = useRef()
+  // ✅ HOOK OTIMIZADO: Substitui todo o código de vídeo manual
+  const { texture, video, loading, play, pause, stop } = useVideoTexture(
+    "/video/Mirror.mp4",
+    {
+      loop: true,
+      muted: true,
+      playsInline: true,
+      preload: "metadata",
+    }
+  )
 
   // Modelo 3D
   const { nodes } = useGLTF("/models/mirrorPos.glb")
 
-  // Inicializar textura de vídeo
+  // ✅ CONTROLE OTIMIZADO: Usar funções do hook
   useEffect(() => {
-    const video = document.createElement("video")
-    video.src = "/video/Mirror.mp4"
-    video.crossOrigin = "anonymous"
-    video.loop = true
-    video.muted = true
-    video.playsInline = true
-    videoRef.current = video
-
-    const videoTexture = new THREE.VideoTexture(video)
-    videoTexture.minFilter = THREE.LinearFilter
-    videoTexture.magFilter = THREE.LinearFilter
-    videoTexture.format = THREE.RGBFormat
-    textureRef.current = videoTexture
-
-    const playVideo = () => {
-      video.play().catch(error => {
-        console.warn("Auto-play prevented:", error)
-      })
-    }
-
-    video.addEventListener("loadedmetadata", playVideo)
-
-    return () => {
-      video.removeEventListener("loadedmetadata", playVideo)
-      videoTexture.dispose()
-    }
-  }, [])
-
-  // Controlar reprodução do vídeo baseado no estado ativo
-  useEffect(() => {
-    if (!videoRef.current) return
+    if (!video || loading) return
 
     if (isActive) {
-      videoRef.current.play().catch(console.warn)
+      console.log("🎥 [MirrorIframe] Iniciando reprodução via hook")
+      play()
     } else {
-      videoRef.current.pause()
+      console.log("🎥 [MirrorIframe] Pausando reprodução via hook")
+      pause()
     }
-  }, [isActive])
+  }, [isActive, video, loading, play, pause])
 
-  // Adicionar um listener para parar o vídeo quando solicitado
+  // ✅ LISTENER OTIMIZADO: Usar função do hook
   useEffect(() => {
     const handleStopVideo = () => {
-      if (videoRef.current) {
-        videoRef.current.pause()
-        videoRef.current.currentTime = 0
-        console.log("Video do espelho pausado externamente")
+      if (video) {
+        stop()
+        console.log("🎥 [MirrorIframe] Vídeo pausado externamente via hook")
 
         // Também desativar o mirror se estiver ativo
         if (isActive) {
@@ -80,19 +59,19 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
     return () => {
       document.removeEventListener("stopMirrorVideo", handleStopVideo)
     }
-  }, [isActive])
+  }, [video, isActive, stop])
 
   // Efeitos para animação
   useEffect(() => {
     if (isActive) {
       activateMirror()
 
-      // NOVO: Registrar que o mirror está sendo utilizado
+      // Registrar que o mirror está sendo utilizado
       if (window.navigationSystem && window.navigationSystem.registerView) {
         window.navigationSystem.registerView("mirror")
       }
 
-      // NOVO: Disparar evento para abrir AiDatingCoachOverlay
+      // Disparar evento para abrir AiDatingCoachOverlay
       setTimeout(() => {
         const mirrorEvent = new CustomEvent("mirrorNavigation", {
           detail: { section: "aidatingcoach" },
@@ -182,38 +161,32 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
   const playSound = sound => {
     try {
       if (window.audioManager) {
-        // Verifica se o audioManager tem um método play direto
         if (typeof window.audioManager.play === "function") {
           window.audioManager.play(sound)
-          console.log(`Som do ${sound} iniciado via audioManager.play`)
-        }
-        // Verifica se possui uma estrutura de sons com método play
-        else if (window.audioManager.sounds?.[sound]?.play) {
+          console.log(`🔊 [MirrorIframe] Som do ${sound} iniciado`)
+        } else if (window.audioManager.sounds?.[sound]?.play) {
           window.audioManager.sounds[sound].play()
-          console.log(`Som do ${sound} iniciado via sounds[sound].play`)
+          console.log(`🔊 [MirrorIframe] Som do ${sound} iniciado via sounds`)
         }
       }
     } catch (error) {
-      console.log(`Erro ao reproduzir som ${sound}:`, error)
+      console.log(`🔊 [MirrorIframe] Erro ao reproduzir som ${sound}:`, error)
     }
   }
 
   const stopSound = sound => {
     try {
       if (window.audioManager) {
-        // Verifica se o audioManager tem um método stop direto
         if (typeof window.audioManager.stop === "function") {
           window.audioManager.stop(sound)
-          console.log(`Som do ${sound} parado via audioManager.stop`)
-        }
-        // Verifica se possui uma estrutura de sons com método stop
-        else if (window.audioManager.sounds?.[sound]?.stop) {
+          console.log(`🔊 [MirrorIframe] Som do ${sound} parado`)
+        } else if (window.audioManager.sounds?.[sound]?.stop) {
           window.audioManager.sounds[sound].stop()
-          console.log(`Som do ${sound} parado via sounds[sound].stop`)
+          console.log(`🔊 [MirrorIframe] Som do ${sound} parado via sounds`)
         }
       }
     } catch (error) {
-      console.log(`Erro ao parar som ${sound}:`, error)
+      console.log(`🔊 [MirrorIframe] Erro ao parar som ${sound}:`, error)
     }
   }
 
@@ -228,10 +201,13 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
             if (typeof window.audioManager.play === "function") {
               window.audioManager.play("transition")
             }
-            console.log("Som de transição reproduzido")
+            console.log("🔊 [MirrorIframe] Som de transição reproduzido")
           }
         } catch (error) {
-          console.log("Erro ao reproduzir som de transição:", error)
+          console.log(
+            "🔊 [MirrorIframe] Erro ao reproduzir som de transição:",
+            error
+          )
         }
       }, 50)
     }
@@ -255,65 +231,21 @@ const MirrorIframe = ({ onReturnToMain, isActive, ...props }) => {
         scale={0.01}
       >
         <mesh geometry={nodes.glassF.geometry}>
-          {textureRef.current && (
+          {/* ✅ TEXTURA OTIMIZADA: Usar texture do hook */}
+          {texture && !loading && (
             <meshStandardMaterial
-              map={textureRef.current}
+              map={texture}
               transparent={true}
               opacity={uiState.meshOpacity * 0.9}
-              emissiveMap={textureRef.current}
-              emissiveIntensity={0.5 * uiState.meshOpacity} // Também animado
+              emissiveMap={texture}
+              emissiveIntensity={0.5 * uiState.meshOpacity}
               emissive={new THREE.Color(0xffffff)}
             />
           )}
         </mesh>
       </group>
 
-      {/* Grupo completamente independente para o HTML */}
-      {/* <group
-        position={[-1.6, 1.466, -0.8]}
-        rotation={[0, -Math.PI / 1.6, 0]}
-        scale={0.0008}
-        {...props}
-      >
-        {uiState.showContent && (
-          <Html
-            transform
-            wrapperClass="mirror-html-wrapper"
-            distanceFactor={350}
-          >
-            <div
-              className="mirror-content"
-              style={{
-                opacity: uiState.opacity,
-                transition: "opacity 0.5s ease-in-out",
-              }}
-            >
-              <div className="mirror-page-wrapper">
-                <MirrorPage />
-              </div>
-
-              {uiState.showButtons && (
-                <div
-                  className="justify-center flex flex-col items-center"
-                  style={{
-                    opacity: uiState.showButtons ? 1 : 0,
-                    transition: "opacity 0.5s ease-in-out",
-                  }}
-                >
-                  <button
-                    onClick={handleBackToMain}
-                    className="text-white bg-pink-500 hover:bg-pink-600 border border-pink-400 rounded-lg px-4 py-2 mt-4"
-                  >
-                    {getNavigationSource("mirror") === "pole"
-                      ? "Return to Cupid's Church"
-                      : "Return to Castle"}
-                  </button>
-                </div>
-              )}
-            </div>
-          </Html>
-        )}
-      </group> */}
+      {/* HTML Content removido para focar na otimização de vídeo */}
     </>
   )
 }
