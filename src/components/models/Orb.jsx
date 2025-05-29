@@ -1,4 +1,4 @@
-// Orb.jsx - Refatorado para evitar carregamento duplicado e otimizar para mobile
+// Orb.jsx - Otimizado para evitar carregamento duplicado
 import React, { useMemo, useRef, useEffect, useState } from "react"
 import { useGLTF, useTexture, Float } from "@react-three/drei"
 import {
@@ -25,6 +25,24 @@ const BLOOM_LAYER = new Layers()
 BLOOM_LAYER.set(1)
 const DOUBLE_CLICK_DELAY = 300
 const EMISSIVE_COLOR = new Color(0x48cae4)
+
+// OTIMIZADO: Carregamento consolidado de texturas do Orb
+const useOrbTextures = isMobile => {
+  return useTexture(
+    isMobile
+      ? {
+          // Versão mobile - menos texturas
+          map: "/texture/Orb_AlphaV1.avif",
+          alphaMap: "/texture/Orb_Alpha.avif",
+        }
+      : {
+          // Versão completa para desktop
+          map: "/texture/Orb_AlphaV1.avif",
+          alphaMap: "/texture/Orb_Alpha.avif",
+          emissiveMap: "/texture/OrbBake_Emissive.avif",
+        }
+  )
+}
 
 // Gerenciador de material otimizado com cache
 const createMaterialManager = () => {
@@ -64,24 +82,7 @@ const RotatingAxis = React.memo(({ axis, speed, children, isMobile }) => {
 const OrbMesh = React.memo(
   ({ isZoomed, setIsZoomed, onSectionChange, isMobile }) => {
     const { nodes } = useGLTF("/models/Orbit.glb")
-
-    // Carregar apenas as texturas necessárias com base no tipo de dispositivo
-    const textureProps = useMemo(() => {
-      return isMobile
-        ? {
-            // Versão mobile - menos texturas
-            map: "/texture/Orb_AlphaV1.avif",
-            alphaMap: "/texture/Orb_Alpha.avif",
-          }
-        : {
-            // Versão completa para desktop
-            map: "/texture/Orb_AlphaV1.avif",
-            alphaMap: "/texture/Orb_Alpha.avif",
-            emissiveMap: "/texture/OrbBake_Emissive.avif",
-          }
-    }, [isMobile])
-
-    const textures = useTexture(textureProps)
+    const textures = useOrbTextures(isMobile)
 
     // Configure textures
     useMemo(() => {
@@ -410,5 +411,4 @@ const Orb = ({ onSectionChange }) => {
   )
 }
 
-// Remover preload duplicado - isso agora é feito centralmente no ResourcePreloader
 export default React.memo(Orb)
