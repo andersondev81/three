@@ -1,23 +1,51 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useRef } from "react"
 import Experience from "../pages/Experience"
+import { notifyExperienceLoaded } from "../utils/experienceLoadingUtils"
 
 const ExperienceWrapper = ({
   initiallyReady,
   isStarted,
   animationsEnabled,
 }) => {
+  // ✅ PROTEÇÃO: Evitar múltiplos disparos do mesmo evento
+  const hasNotifiedRef = useRef(false)
+
   useEffect(() => {
-    if (!initiallyReady) {
+    // ✅ DISPARAR EVENTO quando recursos não estão prontos
+    if (!initiallyReady && !hasNotifiedRef.current) {
+      console.log(
+        "📦 [ExperienceWrapper] Recursos não prontos - disparando evento com delay"
+      )
+
       setTimeout(() => {
-        if (
-          window.onExperienceLoaded &&
-          typeof window.onExperienceLoaded === "function"
-        ) {
-          window.onExperienceLoaded()
+        // ✅ VERIFICAR NOVAMENTE antes de disparar
+        if (!hasNotifiedRef.current) {
+          hasNotifiedRef.current = true
+          console.log(
+            "📦 [ExperienceWrapper] Disparando evento experienceLoaded"
+          )
+
+          // ✅ USAR UTIL para disparar evento
+          notifyExperienceLoaded("experience-wrapper-timeout", {
+            initiallyReady: false,
+          })
+        } else {
+          console.log(
+            "📦 [ExperienceWrapper] Evento já foi disparado - ignorando"
+          )
         }
       }, 1000)
+    } else if (initiallyReady) {
+      console.log(
+        "📦 [ExperienceWrapper] Recursos já prontos - não precisa disparar evento"
+      )
+    } else {
+      console.log(
+        "📦 [ExperienceWrapper] Evento já foi disparado anteriormente - não precisa disparar novamente"
+      )
     }
 
+    // Lógica de animações (mantida igual)
     if (!isStarted) {
       if (window.shouldStartAnimations) {
         window.shouldStartAnimations = false

@@ -3,7 +3,7 @@ import { useProgress } from "@react-three/drei"
 import LoadingScreens from "./pages/LoadingScreen"
 import ExperienceWrapper from "./components/ExperienceWrapper"
 import { AudioProvider } from "./contexts/AudioContext"
-// version
+
 function App() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
@@ -20,20 +20,57 @@ function App() {
     }
   }, [progress])
 
+  // ✅ SISTEMA DE EVENTOS CENTRALIZADO - substitui window.onExperienceLoaded
+  useEffect(() => {
+    const handleExperienceLoaded = event => {
+      console.log(
+        "📦 [App] Evento experienceLoaded recebido:",
+        event.detail || "sem detalhes"
+      )
+
+      if (!resourcesLoadedRef.current) {
+        resourcesLoadedRef.current = true
+        console.log("📦 [App] Marcando recursos como carregados...")
+
+        setTimeout(() => {
+          setIsLoaded(true)
+          setIsLoading(false)
+          console.log(
+            "📦 [App] Estados atualizados: isLoaded=true, isLoading=false"
+          )
+        }, 500)
+      } else {
+        console.log(
+          "📦 [App] Recursos já estavam carregados - ignorando evento duplicado"
+        )
+      }
+    }
+
+    // Escutar evento personalizado
+    document.addEventListener("experienceLoaded", handleExperienceLoaded)
+
+    // Cleanup
+    return () => {
+      document.removeEventListener("experienceLoaded", handleExperienceLoaded)
+    }
+  }, [])
+
   useEffect(() => {
     window.isExperienceStarted = false
     window.isAudioEnabled = isAudioOn
     window.shouldStartAnimations = false
 
+    // ❌ REMOVIDO: window.onExperienceLoaded - agora usa sistema de eventos
+    // Manter compatibilidade temporária se algum código ainda usar
     window.onExperienceLoaded = function () {
-      if (!resourcesLoadedRef.current) {
-        resourcesLoadedRef.current = true
-
-        setTimeout(() => {
-          setIsLoaded(true)
-          setIsLoading(false)
-        }, 500)
-      }
+      console.log(
+        "⚠️ [App] window.onExperienceLoaded chamado - redirecionando para evento"
+      )
+      document.dispatchEvent(
+        new CustomEvent("experienceLoaded", {
+          detail: { source: "legacy-callback" },
+        })
+      )
     }
 
     return () => {
@@ -44,13 +81,23 @@ function App() {
     }
   }, [])
 
+  // Fallback com timeout (mantido para robustez)
   useEffect(() => {
     if (progress === 100 && !active && !resourcesLoadedRef.current) {
+      console.log(
+        "📦 [App] Fallback timeout ativado - progress 100% sem recursos carregados"
+      )
+
       const timeoutId = setTimeout(() => {
         if (!resourcesLoadedRef.current) {
-          resourcesLoadedRef.current = true
-          setIsLoaded(true)
-          setIsLoading(false)
+          console.log("📦 [App] Fallback executado - forçando carregamento")
+
+          // Disparar evento ao invés de chamada direta
+          document.dispatchEvent(
+            new CustomEvent("experienceLoaded", {
+              detail: { source: "fallback-timeout" },
+            })
+          )
         }
       }, 3000)
 
@@ -59,6 +106,7 @@ function App() {
   }, [progress, active])
 
   const handleStart = () => {
+    console.log("🚀 [App] Experiência iniciada pelo usuário")
     setHasStarted(true)
     window.isExperienceStarted = true
 
