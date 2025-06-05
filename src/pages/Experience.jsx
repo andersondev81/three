@@ -67,8 +67,8 @@ const getCanvasConfig = isMobile => ({
   shadows: !isMobile,
 })
 
-// ✅ CAMERA ANIMATION (mantém igual)
-const useCameraAnimation = (section, cameraRef) => {
+// ✅ CAMERA ANIMATION CORRIGIDA - com verificação de isStarted
+const useCameraAnimation = (section, cameraRef, isStarted) => {
   const { camera } = useThree()
   const animationRef = React.useRef({
     progress: 0,
@@ -81,6 +81,14 @@ const useCameraAnimation = (section, cameraRef) => {
 
   useEffect(() => {
     if (!camera) return
+
+    // ✅ SÓ EXECUTAR SE isStarted FOR TRUE
+    if (!isStarted) {
+      console.log("🚫 [useCameraAnimation] Bloqueado - isStarted:", isStarted)
+      return
+    }
+
+    console.log("✅ [useCameraAnimation] INICIANDO - isStarted:", isStarted)
 
     const config =
       CAMERA_CONFIG.sections[section] || CAMERA_CONFIG.sections["intro"]
@@ -132,6 +140,7 @@ const useCameraAnimation = (section, cameraRef) => {
       }
     }
 
+    // ✅ SÓ EXECUTAR O TIMEOUT SE isStarted FOR TRUE
     const timeout = setTimeout(() => {
       setAnimationStart()
       requestAnimationFrame(animate)
@@ -140,6 +149,14 @@ const useCameraAnimation = (section, cameraRef) => {
     if (cameraRef) {
       cameraRef.current = {
         goToHome: () => {
+          // ✅ Verificar isStarted também no goToHome
+          if (!isStarted) {
+            console.log(
+              "🚫 [useCameraAnimation] goToHome bloqueado - não iniciado"
+            )
+            return
+          }
+
           setAnimationStart()
           animationRef.current.config = {
             position: new THREE.Vector3(15.9, 6.8, -11.4),
@@ -155,16 +172,16 @@ const useCameraAnimation = (section, cameraRef) => {
       clearTimeout(timeout)
       animationRef.current.isActive = false
     }
-  }, [section, camera, cameraRef])
+  }, [section, camera, cameraRef, isStarted]) // ✅ Adicionar isStarted como dependência
 }
 
-// ✅ SCENE CONTROLLER
+// ✅ SCENE CONTROLLER CORRIGIDO - RECEBER isStarted como prop
 const SceneController = React.memo(({ section, cameraRef, isStarted }) => {
   const { camera } = useThree()
   const [showPerf, setShowPerf] = useState(false)
 
-  // ✅ CAMERA ANIMATION - SÓ QUANDO STARTED
-  useCameraAnimation(section, cameraRef, !isStarted) // ✅ Passa isPaused = !isStarted
+  // ✅ AGORA isStarted está disponível
+  useCameraAnimation(section, cameraRef, isStarted)
 
   useEffect(() => {
     const togglePerf = e => {
@@ -194,90 +211,137 @@ const SceneController = React.memo(({ section, cameraRef, isStarted }) => {
   )
 })
 
-// ✅ PrimaryContent
-
+// ✅ PRIMARY CONTENT - CORREÇÃO FINAL: Forçar re-render do Environment
 const PrimaryContent = React.memo(
   ({ activeSection, onSectionChange, isReady, isStarted }) => {
-    const groundParams = useRef({
+    // ✅ MUDANÇA: Usar useState em vez de useRef para forçar re-renders
+    const [groundParams, setGroundParams] = useState({
       height: 5,
-      radius: 110,
+      radius: 130,
       scale: 100,
     })
-    const [forceUpdate, setForceUpdate] = useState(0)
-    const animationStartedRef = useRef(false)
 
-    // ✅ DEBUG DETALHADO DOS PROPS
-    console.log(
-      `🎬 [PrimaryContent] PROPS RECEBIDOS: isReady=${isReady}, isStarted=${isStarted} (${typeof isStarted})`
-    )
+    // ✅ Estados para animação suave
+    const animationState = useRef({
+      isAnimating: false,
+      startTime: 0,
+      startRadius: 130,
+      startScale: 100,
+      targetRadius: 13,
+      targetScale: 22,
+      duration: 2000,
+      delay: 1000,
+    })
 
-    // ✅ CONTROLE SUPER RIGOROSO: só anima quando REALMENTE started
+    const hasAnimatedRef = useRef(false)
+
+    // ✅ Console.log só quando isStarted mudar
     useEffect(() => {
       console.log(
-        `🎬 [PrimaryContent] useEffect triggered - isStarted=${isStarted} (${typeof isStarted})`
+        `🎬 [PrimaryContent] isStarted: ${isStarted}, hasAnimated: ${hasAnimatedRef.current}`
       )
+    }, [isStarted])
 
-      // ✅ RESETAR estado se não estiver started (inclui undefined)
+    // ✅ CONTROLE DE INÍCIO DA ANIMAÇÃO
+    useEffect(() => {
+      // ✅ Resetar se não estiver started
       if (!isStarted) {
-        console.log(
-          "🛑 [PrimaryContent] NÃO STARTED - parando/resetando animações"
-        )
-
-        if (animationStartedRef.current && typeof gsap !== "undefined") {
-          gsap.killTweensOf(groundParams.current)
-          console.log("🛑 [PrimaryContent] GSAP killTweensOf - animação parada")
-        }
-
-        // Reset para valores iniciais
-        groundParams.current.radius = 110
-        groundParams.current.scale = 100
-        groundParams.current.height = 5
-        animationStartedRef.current = false
-        setForceUpdate(prev => prev + 1)
+        console.log("🔄 [PrimaryContent] Resetando para estado inicial")
+        hasAnimatedRef.current = false
+        animationState.current.isAnimating = false
+        setGroundParams({
+          height: 5,
+          radius: 130,
+          scale: 100,
+        })
         return
       }
 
-      // ✅ SÓ INICIA se started E ainda não iniciou
-      if (isStarted === true && !animationStartedRef.current) {
+      // ✅ Só animar se started E ainda não animou
+      if (isStarted && !hasAnimatedRef.current) {
         console.log(
-          "✅ [PrimaryContent] STARTED = true - INICIANDO animações GSAP"
+          "🎬 [PrimaryContent] INICIANDO animação useFrame - isStarted:",
+          isStarted
         )
-        animationStartedRef.current = true
+        hasAnimatedRef.current = true
 
-        if (typeof gsap !== "undefined") {
-          gsap.to(groundParams.current, {
-            radius: 13,
-            duration: 2,
-            scale: 22,
-            delay: 0,
-            ease: "sine.inOut",
-            onUpdate: () => {
-              setForceUpdate(prev => prev + 1)
-            },
-            onComplete: () => {
-              console.log("✅ [PrimaryContent] Animação GSAP completa")
-            },
-          })
-        }
+        setTimeout(() => {
+          console.log(
+            "🚀 [PrimaryContent] TIMEOUT EXECUTADO - configurando animação"
+          )
+          animationState.current = {
+            ...animationState.current,
+            isAnimating: true,
+            startTime: performance.now(),
+            startRadius: groundParams.radius,
+            startScale: groundParams.scale,
+          }
+          console.log("🎬 [PrimaryContent] Delay completo - iniciando animação")
+        }, animationState.current.delay)
       }
-    }, [isStarted])
+    }, [isStarted, groundParams.radius, groundParams.scale])
 
-    // ✅ LOG para debug
-    console.log(
-      `🎬 [PrimaryContent] STATUS: isStarted=${isStarted}, animationStarted=${animationStartedRef.current}, radius=${groundParams.current.radius}`
-    )
+    // ✅ ANIMAÇÃO SUAVE COM useFrame + setState
+    useFrame(() => {
+      if (!animationState.current.isAnimating) return
+
+      const elapsed = performance.now() - animationState.current.startTime
+      const progress = Math.min(elapsed / animationState.current.duration, 1)
+
+      // ✅ Easing function
+      const easeInOut = t => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t)
+      const easedProgress = easeInOut(progress)
+
+      // ✅ Interpolar valores
+      const { startRadius, startScale, targetRadius, targetScale } =
+        animationState.current
+
+      const newRadius =
+        startRadius + (targetRadius - startRadius) * easedProgress
+      const newScale = startScale + (targetScale - startScale) * easedProgress
+
+      // ✅ MUDANÇA: Usar setState para forçar re-render
+      setGroundParams(prev => ({
+        ...prev,
+        radius: newRadius,
+        scale: newScale,
+      }))
+
+      // ✅ Debug a cada 10%
+      if (Math.floor(progress * 10) !== Math.floor((progress - 0.01) * 10)) {
+        console.log(
+          `📈 [PrimaryContent] Progresso: ${Math.round(
+            progress * 100
+          )}% - Radius: ${newRadius.toFixed(1)}`
+        )
+      }
+
+      // ✅ Animação completa
+      if (progress >= 1) {
+        animationState.current.isAnimating = false
+        setGroundParams(prev => ({
+          ...prev,
+          radius: targetRadius,
+          scale: targetScale,
+        }))
+        console.log(
+          "✅ [PrimaryContent] Animação useFrame completa - radius final:",
+          targetRadius
+        )
+      }
+    })
 
     return (
       <>
-        {/* ✅ Environment carrega imediatamente - importante para useProgress */}
+        {/* ✅ Environment agora recebe state que força re-render */}
         <Environment
           files="/images/CloudsBG.hdr"
           background
           resolution={256}
           ground={{
-            height: groundParams.current.height,
-            radius: groundParams.current.radius,
-            scale: groundParams.current.scale,
+            height: groundParams.height,
+            radius: groundParams.radius,
+            scale: groundParams.scale,
           }}
         />
         <Sparkles
@@ -300,7 +364,6 @@ const PrimaryContent = React.memo(
           castShadow={false}
           receiveShadow={false}
         />
-        {/* ✅ Todos os modelos carregam imediatamente para serem detectados pelo useProgress */}
         <Castle
           activeSection={activeSection}
           onSectionChange={onSectionChange}
@@ -320,13 +383,15 @@ const PrimaryContent = React.memo(
 )
 
 // ✅ SECONDARY CONTENT - RENDERIZA SEMPRE, ANIMA QUANDO APROPRIADO
-
-const SecondaryContent = React.memo(() => {
+const SecondaryContent = React.memo(({ isReady }) => {
   const cloudGroupRef = useRef()
   const { camera } = useThree()
   const isMobile = useMobileDetection()
 
   useFrame(() => {
+    // ✅ Lógica de opacity só quando experiência estiver realmente iniciada
+    if (!isReady || !window.shouldStartAnimations) return
+
     const castleCenter = new THREE.Vector3(0, 0, 0)
     const distance = camera.position.distanceTo(castleCenter)
 
@@ -357,6 +422,7 @@ const SecondaryContent = React.memo(() => {
   return (
     <>
       <ambientLight intensity={3} color="#ffffff" />
+      {/* ✅ CloudGroup renderiza sempre para ser detectado pelo useProgress */}
       <group ref={cloudGroupRef}>
         <CloudGroup
           commonProps={{
@@ -526,7 +592,7 @@ const SecondaryContent = React.memo(() => {
   )
 })
 
-// ✅ SCENE CONTENT - EVITAR PRELOAD DUPLO E CONTROLAR ANIMAÇÕES
+// ✅ SCENE CONTENT - EVITAR PRELOAD DUPLO
 const SceneContent = React.memo(
   ({ activeSection, onSectionChange, isReady, isStarted }) => {
     useEffect(() => {
@@ -553,12 +619,9 @@ const SceneContent = React.memo(
           activeSection={activeSection}
           onSectionChange={onSectionChange}
           isReady={isReady}
-          isStarted={isStarted} // ✅ PASSAR isStarted
+          isStarted={isStarted}
         />
-        <SecondaryContent
-          isReady={isReady}
-          isStarted={isStarted} // ✅ PASSAR isStarted
-        />
+        <SecondaryContent isReady={isReady} />
       </>
     )
   }
@@ -653,11 +716,17 @@ const Experience = ({ initiallyReady = false, isStarted = false }) => {
     <div className="relative w-full h-screen">
       <div className="absolute inset-0 z-0">
         <Canvas {...canvasConfig} className="w-full h-full">
-          <SceneController section={currentSection} cameraRef={cameraRef} />
+          {/* ✅ PASSAR isStarted para SceneController */}
+          <SceneController
+            section={currentSection}
+            cameraRef={cameraRef}
+            isStarted={isStarted}
+          />
           <SceneContent
             activeSection={activeSection}
             onSectionChange={handleSectionChange}
-            isReady={true} // ✅ SEMPRE true para carregar assets
+            isReady={true}
+            isStarted={isStarted} // ✅ PASSAR isStarted
           />
         </Canvas>
       </div>
