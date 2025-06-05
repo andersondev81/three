@@ -737,13 +737,14 @@ const CastleModel = ({
   )
 }
 
-const Castle = ({ activeSection, onSectionChange }) => {
+const Castle = ({ activeSection, onSectionChange, isStarted = false }) => {
   const controls = useRef()
   const [atmiframeActive, setAtmiframeActive] = useState(false)
   const [mirrorIframeActive, setMirrorIframeActive] = useState(false)
   const [scrollIframeActive, setScrollIframeActive] = useState(false)
   const [cameraLocked, setCameraLocked] = useState(true)
   const [clipboardMessage, setClipboardMessage] = useState("")
+  const [hasStartedAnimation, setHasStartedAnimation] = useState(false)
 
   window.resetIframes = () => {
     setAtmiframeActive(false)
@@ -767,7 +768,25 @@ const Castle = ({ activeSection, onSectionChange }) => {
       setScrollIframeActive(false)
     }
   }, [activeSection])
+  useEffect(() => {
+    if (!controls.current || !isStarted || hasStartedAnimation) return
+    console.log("🚀 [Castle] Iniciando animação da câmera")
+    setHasStartedAnimation(true)
+    setTimeout(() => {
+      playTransition("nav")
+    }, TRANSITION_DELAY)
+  }, [isStarted, hasStartedAnimation])
 
+  useEffect(() => {
+    if (!isStarted && hasStartedAnimation) {
+      console.log("🔄 [Castle] Resetando animação")
+      setHasStartedAnimation(false)
+      if (controls.current) {
+        const defaultPosition = getCameraPosition("default")
+        controls.current.setLookAt(...defaultPosition, false)
+      }
+    }
+  }, [isStarted, hasStartedAnimation])
   const getCameraPosition = section => {
     const isSmallScreen = window.innerWidth < SMALL_SCREEN_THRESHOLD
     const screenType = isSmallScreen ? "small" : "large"
@@ -967,9 +986,7 @@ const Castle = ({ activeSection, onSectionChange }) => {
       const defaultPosition = getCameraPosition("default")
       controls.current.setLookAt(...defaultPosition, false)
 
-      setTimeout(() => {
-        playTransition("nav")
-      }, TRANSITION_DELAY)
+      console.log("🎥 [Castle] Camera setup - isStarted:", isStarted)
     }
 
     return () => {
