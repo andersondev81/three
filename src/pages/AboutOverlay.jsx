@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { X, Heart } from "lucide-react"
-import audioManager from "../utils/AudioManager"
+import AudioManager from "../utils/AudioManager"
+import ReturnButton from "../components/ui/ReturnButton"
 
 export const AboutOverlay = ({ isVisible, onClose }) => {
   const [mounted, setMounted] = useState(false)
@@ -12,7 +13,7 @@ export const AboutOverlay = ({ isVisible, onClose }) => {
       const timer = setTimeout(() => setMounted(true), 300)
       return () => clearTimeout(timer)
     } else {
-      audioManager.play("transition")
+      AudioManager.play("transition")
       setMounted(false)
     }
   }, [isVisible])
@@ -145,15 +146,15 @@ export const AboutOverlay = ({ isVisible, onClose }) => {
               </div>
             </div>
           </div>
-
-          {/* Back to Main Button */}
           <div className="text-center py-8">
-            <button
+            <ReturnButton
               onClick={onClose}
-              className="px-8 py-4 bg-pink-500 text-white rounded-full font-bold text-lg hover:bg-pink-600 transition-all duration-300 shadow-lg hover:shadow-pink-300"
+              variant="pink"
+              fixed={false}
+              className="mx-auto block"
             >
-              Return to Cupid's Church
-            </button>
+              Return to Castle
+            </ReturnButton>
           </div>
         </div>
       </div>

@@ -17,7 +17,6 @@ import AtmIframe from "./AtmIframe"
 import MirrorIframe from "./MirrorIframe"
 import ScrollIframe from "./ScrolIframe"
 
-// Import all texture materials from the separate file
 import {
   useCastleMaterial,
   useCastleHeartMaterial,
@@ -44,7 +43,14 @@ import {
 
 const SMALL_SCREEN_THRESHOLD = 768
 const TRANSITION_DELAY = 100
+
 window.lastClickedPosition = null
+window.lastClickedPositions = {
+  mirror: null,
+  atm: null,
+  scroll: null,
+  orb: null,
+}
 
 function smoothCameraReturn(position, target) {
   if (!window.controls || !window.controls.current) return
@@ -64,13 +70,6 @@ function smoothCameraReturn(position, target) {
       )
       .catch(err => {})
   }, 50)
-}
-
-window.lastClickedPositions = {
-  mirror: null,
-  atm: null,
-  scroll: null,
-  orb: null,
 }
 
 window.smoothCameraReturn = function (position, target) {
@@ -244,41 +243,22 @@ const NavigationSystem = {
 
 NavigationSystem.init()
 
-window.globalNavigation = {
-  navigateTo: null,
-  lastSection: "nav",
-  sectionIndices: {
-    nav: 0,
-    about: 1,
-    aidatingcoach: 2,
-    download: 3,
-    token: 4,
-    roadmap: 5,
-  },
-  reset: function () {
-    if (window.resetIframes) {
-      window.resetIframes()
-    }
-  },
-  log: function (message) {},
-}
-
 const cameraConfig = {
   default: {
     large: [
-      -0.6191818190771635, 1.0420789531859995, 192.27433517944273,
-      -0.21830679207380707, 1.042078953185994, 0.860456882413919,
+      -0.6191818190771635, 0.95, 100.27433517944273, -0.21830679207380707,
+      1.042078953185994, 0.860456882413919,
     ],
     small: [
-      -0.6191818190771635, 1.0420789531859995, 192.27433517944273,
-      -0.21830679207380707, 1.042078953185994, 1.042078953185994,
+      -0.6191818190771635, 0.95, 100.27433517944273, -0.21830679207380707,
+      1.042078953185994, -0.1,
     ],
   },
   sections: {
     large: {
       nav: [
-        -0.1484189177185437, 0.9565803692840462, 6.591986961996083,
-        -0.21830679207380707, 1.042078953185994, 0.860456882413919,
+        -0.1484189177185437, 0.9565803692840462, 7, -0.21830679207380707,
+        1.042078953185994, -0.1,
       ],
       about: [
         1.936122025766665, 1.1392067925461205, -0.9748917781012864,
@@ -297,8 +277,8 @@ const cameraConfig = {
         -0.1281470601284271, 0.805001281674392, -0.041739658223842804,
       ],
       roadmap: [
-        -2.162176291859386, 1.1693966697832865, 1.1159461725522344,
-        0.027134998854945094, 1.177966566007922, -0.17952880154910716,
+        -2.161684749505211, 1.173942777565765, 1.1206670134865,
+        -0.197542004012201, 1.111892526171484, -0.069368081468385,
       ],
       atm: [
         1.374503345207453, 1.441964012122825, 1.68925639812635,
@@ -307,16 +287,16 @@ const cameraConfig = {
     },
     small: {
       nav: [
-        -0.46953619581756645, 1.3516480438889815, 7.21130905852417,
-        -1.3224149774642704, 1.6753152120757284, 1.0989767468615808,
+        -0.868691622067547, 1.029782675546368, 7.143255099997356, 0.0,
+        1.675315212075728, -0.1,
       ],
       about: [
         2.3794036621880066, 1.2374886332491917, -1.2579531405441664,
         -0.3255291216311705, 1.3232162748274139, 0.2492021531029873,
       ],
       aidatingcoach: [
-        -2.361710501463067, 1.439377184450022, -1.1825955618240986,
-        -0.16561813012505458, 1.5435201358103645, -0.07648364070439503,
+        -2.581695666739801, 1.371253842691613, -1.255349396667348,
+        -0.031149146971484, 1.541309489195095, -0.08529385130035,
       ],
       download: [
         1.8562259954731093, 1.1626020325030495, -0.926552435064171,
@@ -327,8 +307,8 @@ const cameraConfig = {
         0.4005218950207079, 0.9552618075887411, 0.24515338785642443,
       ],
       roadmap: [
-        -2.27136632232592, 1.219704717323445, 1.185983135275456,
-        0.40491971097480645, 0.9891680073777159, -0.4758823817390637,
+        -2.180525612709062, 1.158549488415, 1.115589073493356,
+        0.000018681309145, 1.211390086122982, -0.094066400577277,
       ],
       atm: [
         1.374503345207453, 1.441964012122825, 1.68925639812635,
@@ -353,19 +333,16 @@ const updateSpatialSounds = cameraPosition => {
 
   const maxOrbDistance = 1.5
 
-  // ORB SOUND - CORRIGIDO para lazy loading
   if (window.audioManager.sounds.orb) {
     if (distToOrb < maxOrbDistance) {
       const attenuationOrb = 1 - Math.pow(distToOrb / maxOrbDistance, 3)
       const orbVolume = Math.max(0, 0.2 * attenuationOrb)
 
       if (orbVolume > 0.05) {
-        // CRIAR áudio se não existir (lazy loading)
         if (!window.audioManager.sounds.orb.audio) {
           window.audioManager.createAudioElement("orb")
         }
 
-        // AGORA é seguro acessar .audio
         if (window.audioManager.sounds.orb.audio) {
           window.audioManager.sounds.orb.audio.volume = orbVolume
         }
@@ -394,19 +371,16 @@ const updateSpatialSounds = cameraPosition => {
 
   const maxFountainDistance = 3.5
 
-  // FOUNTAIN SOUND - CORRIGIDO para lazy loading
   if (window.audioManager.sounds.fountain) {
     if (distToFountain < maxFountainDistance) {
       const attenuationFountain = 1 - distToFountain / maxFountainDistance
       const fountainVolume = Math.max(0, 0.2 * attenuationFountain)
 
       if (fountainVolume > 0.02) {
-        // CRIAR áudio se não existir (lazy loading)
         if (!window.audioManager.sounds.fountain.audio) {
           window.audioManager.createAudioElement("fountain")
         }
 
-        // AGORA é seguro acessar .audio
         if (window.audioManager.sounds.fountain.audio) {
           window.audioManager.sounds.fountain.audio.volume = fountainVolume
         }
@@ -442,7 +416,6 @@ const CastleModel = ({
 }) => {
   const { nodes } = useGLTF("/models/Castle.glb")
 
-  // Use imported texture materials
   const material = useCastleMaterial()
   const castleHeart = useCastleHeartMaterial()
   const castleHeartMask = useCastleHeartMaskMaterial()
@@ -474,6 +447,7 @@ const CastleModel = ({
       preload: "metadata",
     }
   )
+
   const portalMaterial = useMemo(
     () =>
       portalTexture
@@ -494,21 +468,33 @@ const CastleModel = ({
 
   const mirrorHandlers = NavigationSystem.createElementHandlers(
     "mirror",
-    () => onCastleClick("aidatingcoach"),
+    () => {
+      if (!mirrorIframeActive) {
+        onCastleClick("aidatingcoach")
+      }
+    },
     setMirrorIframeActive,
     mirrorIframeActive
   )
 
   const atmHandlers = NavigationSystem.createElementHandlers(
     "atm",
-    () => onCastleClick("token"),
+    () => {
+      if (!atmIframeActive) {
+        onCastleClick("token")
+      }
+    },
     setAtmiframeActive,
     atmIframeActive
   )
 
   const scrollHandlers = NavigationSystem.createElementHandlers(
     "scroll",
-    () => onCastleClick("roadmap"),
+    () => {
+      if (!scrollIframeActive) {
+        onCastleClick("roadmap")
+      }
+    },
     setScrollIframeActive,
     scrollIframeActive
   )
@@ -676,6 +662,7 @@ const CastleModel = ({
         castShadow={false}
         receiveShadow={false}
       />
+
       <AtmIframe
         position={[1.675, 1.185, 0.86]}
         rotation={[1.47, 0.194, -1.088]}
@@ -698,48 +685,54 @@ const CastleModel = ({
         }}
         isActive={atmIframeActive}
       />
-      <MirrorIframe
-        onReturnToMain={source => {
-          setMirrorIframeActive(false)
 
-          setTimeout(() => {
-            if (source === "pole") {
-              onCastleClick("nav")
-            } else {
-              const storedPosition =
-                window.navigationSystem.getPosition("mirror")
-              if (storedPosition) {
-                const { position, target } = storedPosition
-                smoothCameraReturn(position, target)
-              } else {
-                onCastleClick("nav")
-              }
-            }
-          }, 100)
-        }}
-        isActive={mirrorIframeActive}
-      />
-      <ScrollIframe
-        onReturnToMain={source => {
-          setScrollIframeActive(false)
+      {mirrorIframeActive && (
+        <MirrorIframe
+          onReturnToMain={source => {
+            setMirrorIframeActive(false)
 
-          setTimeout(() => {
-            if (source === "pole") {
-              onCastleClick("nav")
-            } else {
-              const storedPosition =
-                window.navigationSystem.getPosition("scroll")
-              if (storedPosition) {
-                const { position, target } = storedPosition
-                smoothCameraReturn(position, target)
-              } else {
+            setTimeout(() => {
+              if (source === "pole") {
                 onCastleClick("nav")
+              } else {
+                const storedPosition =
+                  window.navigationSystem.getPosition("mirror")
+                if (storedPosition) {
+                  const { position, target } = storedPosition
+                  smoothCameraReturn(position, target)
+                } else {
+                  onCastleClick("nav")
+                }
               }
-            }
-          }, 100)
-        }}
-        isActive={scrollIframeActive}
-      />
+            }, 100)
+          }}
+          isActive={mirrorIframeActive}
+        />
+      )}
+
+      {scrollIframeActive && (
+        <ScrollIframe
+          onReturnToMain={source => {
+            setScrollIframeActive(false)
+
+            setTimeout(() => {
+              if (source === "pole") {
+                onCastleClick("nav")
+              } else {
+                const storedPosition =
+                  window.navigationSystem.getPosition("scroll")
+                if (storedPosition) {
+                  const { position, target } = storedPosition
+                  smoothCameraReturn(position, target)
+                } else {
+                  onCastleClick("nav")
+                }
+              }
+            }, 100)
+          }}
+          isActive={scrollIframeActive}
+        />
+      )}
     </group>
   )
 }
@@ -756,7 +749,24 @@ const Castle = ({ activeSection, onSectionChange }) => {
     setAtmiframeActive(false)
     setMirrorIframeActive(false)
     setScrollIframeActive(false)
+
+    if (window.audioManager) {
+      window.audioManager.stopSectionSounds("aidatingcoach")
+      window.audioManager.stopSectionSounds("token")
+      window.audioManager.stopSectionSounds("roadmap")
+    }
   }
+
+  useEffect(() => {
+    if (
+      activeSection &&
+      !["aidatingcoach", "token", "roadmap"].includes(activeSection)
+    ) {
+      setAtmiframeActive(false)
+      setMirrorIframeActive(false)
+      setScrollIframeActive(false)
+    }
+  }, [activeSection])
 
   const getCameraPosition = section => {
     const isSmallScreen = window.innerWidth < SMALL_SCREEN_THRESHOLD
@@ -772,6 +782,10 @@ const Castle = ({ activeSection, onSectionChange }) => {
   const playTransition = sectionName => {
     if (!controls.current) return
 
+    setAtmiframeActive(false)
+    setMirrorIframeActive(false)
+    setScrollIframeActive(false)
+
     if (activeSection && activeSection !== sectionName) {
       window.audioManager?.stopSectionSounds(activeSection)
     }
@@ -786,8 +800,12 @@ const Castle = ({ activeSection, onSectionChange }) => {
           if (window.audioManager?.sounds["mirror"]) {
             window.audioManager.play("mirror")
           }
+          setTimeout(() => {
+            setMirrorIframeActive(true)
+          }, 150)
           break
-        case "token": // ← CASO MODIFICADO
+
+        case "token":
           if (window.audioManager?.sounds["atm"]) {
             window.audioManager.play("atm")
           }
@@ -795,13 +813,12 @@ const Castle = ({ activeSection, onSectionChange }) => {
             window.audioManager.play("coins")
           }
 
-          // 🔥 NOVA LÓGICA: Chama o sistema de seções em vez do iframe 3D
           if (onSectionChange) {
-            console.log("Castle: Calling onSectionChange for token")
-            onSectionChange(4, "token") // 4 = índice da seção token
-            return // Para aqui - não executa o resto da lógica
+            onSectionChange(4, "token")
+            return
           }
           break
+
         case "roadmap":
           if (window.audioManager?.sounds["scroll"]) {
             window.audioManager.play("scroll")
@@ -810,35 +827,20 @@ const Castle = ({ activeSection, onSectionChange }) => {
             window.audioManager.play("paper")
           }
 
-          // 🔥 CHAMA O SISTEMA DE SEÇÕES EM VEZ DO IFRAME 3D
           if (onSectionChange) {
-            console.log("Castle: Calling onSectionChange for roadmap")
             onSectionChange(5, "roadmap")
-            return // Para aqui - não executa o resto da lógica
+            return
           }
+          break
+
+        case "nav":
+          setAtmiframeActive(false)
+          setMirrorIframeActive(false)
+          setScrollIframeActive(false)
           break
       }
     }, 300)
 
-    if (sectionName === "roadmap") {
-      // NÃO ativa mais o ScrolIframe - usa o sistema de seções
-      setAtmiframeActive(false)
-      setMirrorIframeActive(false)
-      // setScrollIframeActive permanece false
-    } else if (sectionName === "token") {
-      // NÃO ativa mais o AtmIframe - usa o sistema de seções
-      setScrollIframeActive(false)
-      setMirrorIframeActive(false)
-      // setAtmiframeActive permanece false
-    } else if (sectionName === "aidatingcoach") {
-      setMirrorIframeActive(true)
-      setScrollIframeActive(false)
-      setAtmiframeActive(false)
-    } else {
-      setScrollIframeActive(false)
-      setAtmiframeActive(false)
-      setMirrorIframeActive(false)
-    }
     controls.current.enabled = true
 
     const targetPosition = getCameraPosition(
@@ -855,16 +857,41 @@ const Castle = ({ activeSection, onSectionChange }) => {
     }
   }
 
+  window.globalNavigation = {
+    navigateTo: playTransition,
+    lastSection: "nav",
+    sectionIndices: {
+      nav: 0,
+      about: 1,
+      aidatingcoach: 2,
+      download: 3,
+      token: 4,
+      roadmap: 5,
+    },
+    reset: function () {
+      if (window.resetIframes) {
+        window.resetIframes()
+      }
+      this.lastSection = "nav"
+    },
+    log: function (message) {},
+  }
+
   useEffect(() => {
     window.audioManager?.startAmbient()
     window.audioManager?.preloadAll()
 
+    setAtmiframeActive(false)
+    setMirrorIframeActive(false)
+    setScrollIframeActive(false)
+
     return () => {
       window.audioManager?.stopAmbient()
+      if (window.resetIframes) {
+        window.resetIframes()
+      }
     }
   }, [])
-
-  window.globalNavigation.navigateTo = playTransition
 
   const copyPositionToClipboard = () => {
     if (!controls.current) return
@@ -897,12 +924,6 @@ const Castle = ({ activeSection, onSectionChange }) => {
         .map(val => Number(val).toFixed(15))
         .join(", ")
 
-      const jsArrayFormat = `[\n  ${posArray
-        .map(val => Number(val).toFixed(15))
-        .join(",\n  ")},\n  ${targetArray
-        .map(val => Number(val).toFixed(15))
-        .join(",\n  ")}\n]`
-
       navigator.clipboard
         .writeText(formattedArray)
         .then(() => {
@@ -933,10 +954,10 @@ const Castle = ({ activeSection, onSectionChange }) => {
     window.controls = controls
 
     if (cameraLocked) {
-      controls.current.minPolarAngle = Math.PI * 0.4
-      controls.current.maxPolarAngle = Math.PI * 0.55
-      controls.current.minDistance = 0
-      controls.current.maxDistance = 100
+      controls.current.minPolarAngle = Math.PI * 0.34
+      controls.current.maxPolarAngle = Math.PI * 0.53
+      controls.current.minDistance = 1
+      controls.current.maxDistance = 14
       controls.current.boundaryFriction = 1
       controls.current.boundaryEnclosesCamera = true
       controls.current.dollyToCursor = true

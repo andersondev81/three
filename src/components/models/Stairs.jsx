@@ -1,18 +1,12 @@
-import React, { useMemo, useEffect } from "react"
+import React, { useMemo } from "react"
 import { useGLTF, useTexture } from "@react-three/drei"
-import { useLoader } from "@react-three/fiber"
-import { TextureLoader } from "three"
 import {
-  Color,
   MeshPhysicalMaterial,
-  MeshStandardMaterial,
   DoubleSide,
   NormalBlending,
   NearestFilter,
-  EquirectangularReflectionMapping,
 } from "three"
-
-import { RGBELoader } from "three/addons/loaders/RGBELoader.js"
+import { useBg1Environment } from "../../utils/useSharedEnvironmentMaps"
 
 const useStairsMaterial = () => {
   const textures = useTexture({
@@ -22,9 +16,7 @@ const useStairsMaterial = () => {
     roughnessMap: "/texture/stairs_Roughness.avif",
   })
 
-  // load Environment
-  const envMap = useLoader(TextureLoader, "/images/bg1.jpg")
-  envMap.mapping = EquirectangularReflectionMapping
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
     Object.values(textures).forEach(texture => {
@@ -49,17 +41,11 @@ const useStairsMaterial = () => {
         blending: NormalBlending,
         roughness: 1,
         metalness: 0.6,
-        envMap: envMap,
+        envMap: bg1Env,
         envMapIntensity: 2.2,
       }),
-    [textures, envMap]
+    [textures, bg1Env]
   )
-
-  useEffect(() => {
-    if (envMap) {
-      material.needsUpdate = true
-    }
-  }, [envMap, material])
 
   return material
 }

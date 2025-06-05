@@ -14,6 +14,7 @@ import {
   Zap,
 } from "lucide-react"
 import AudioManager from "../utils/AudioManager"
+import ReturnButton from "../components/ui/ReturnButton"
 
 export const DownloadOverlay = ({ isVisible, onClose }) => {
   const [mounted, setMounted] = useState(false)
@@ -426,6 +427,7 @@ export const DownloadOverlay = ({ isVisible, onClose }) => {
               ))}
             </div>
           </div>
+
           {/* Download Section */}
           <div className="text-center py-8">
             <h2 className="text-5xl font-bold text-pink-600 mb-6">
@@ -445,16 +447,18 @@ export const DownloadOverlay = ({ isVisible, onClose }) => {
                 <span>Android Download</span>
               </button>
             </div>
-
-            <div className="mt-8">
-              <button
-                onClick={onClose}
-                className="px-8 py-4 bg-gray-200 text-gray-700 rounded-full font-bold text-lg hover:bg-gray-300 transition-all duration-300 shadow-lg"
-              >
-                Return to Cupid's Church
-              </button>
-            </div>
           </div>
+        </div>
+
+        <div className="text-center py-8">
+          <ReturnButton
+            onClick={onClose}
+            variant="pink"
+            fixed={false}
+            className="mx-auto block"
+          >
+            Return to Castle
+          </ReturnButton>
         </div>
       </div>
     </div>

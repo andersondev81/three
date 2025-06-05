@@ -18,15 +18,20 @@ import { Pole } from "../components/models/Pole"
 import { Stairs } from "../components/models/Stairs"
 import { CloudGroup } from "../components/models/CloudsGroup"
 import AtmIframe from "../components/models/AtmIframe"
-import MirrorIframe from "../components/models/MirrorIframe"
 import Orb from "../components/models/Orb"
 import { CAMERA_CONFIG } from "../utils/cameraConfig"
 import { EffectsTree } from "../components/helpers/EffectsTree"
 import EnvMapLoader from "../components/helpers/EnvMapLoader"
 import AudioControl from "../components/AudioControl"
 
+// ✅ MOBILE DETECTION
 const useMobileDetection = () => {
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(() => {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera
+    const mobileRegex =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
+    return mobileRegex.test(userAgent) || window.innerWidth < 768
+  })
 
   useEffect(() => {
     const checkMobile = () => {
@@ -36,15 +41,14 @@ const useMobileDetection = () => {
       setIsMobile(mobileRegex.test(userAgent) || window.innerWidth < 768)
     }
 
-    checkMobile()
     window.addEventListener("resize", checkMobile)
-
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
   return isMobile
 }
 
+// ✅ CANVAS CONFIG
 const getCanvasConfig = isMobile => ({
   dpr: isMobile ? 1 : 1.5,
   gl: {
@@ -63,6 +67,7 @@ const getCanvasConfig = isMobile => ({
   shadows: !isMobile,
 })
 
+// ✅ CAMERA ANIMATION (mantém igual)
 const useCameraAnimation = (section, cameraRef) => {
   const { camera } = useThree()
   const animationRef = React.useRef({
@@ -153,11 +158,13 @@ const useCameraAnimation = (section, cameraRef) => {
   }, [section, camera, cameraRef])
 }
 
-const SceneController = React.memo(({ section, cameraRef }) => {
+// ✅ SCENE CONTROLLER
+const SceneController = React.memo(({ section, cameraRef, isStarted }) => {
   const { camera } = useThree()
   const [showPerf, setShowPerf] = useState(false)
 
-  useCameraAnimation(section, cameraRef)
+  // ✅ CAMERA ANIMATION - SÓ QUANDO STARTED
+  useCameraAnimation(section, cameraRef, !isStarted) // ✅ Passa isPaused = !isStarted
 
   useEffect(() => {
     const togglePerf = e => {
@@ -172,7 +179,6 @@ const SceneController = React.memo(({ section, cameraRef }) => {
 
   useEffect(() => {
     window.threeCamera = camera
-
     return () => {
       delete window.threeCamera
     }
@@ -188,22 +194,56 @@ const SceneController = React.memo(({ section, cameraRef }) => {
   )
 })
 
+// ✅ PrimaryContent
+
 const PrimaryContent = React.memo(
-  ({ activeSection, onSectionChange, isReady }) => {
+  ({ activeSection, onSectionChange, isReady, isStarted }) => {
     const groundParams = useRef({
       height: 5,
       radius: 110,
       scale: 100,
     })
     const [forceUpdate, setForceUpdate] = useState(0)
-    const isMobile = useMobileDetection()
+    const animationStartedRef = useRef(false)
 
+    // ✅ DEBUG DETALHADO DOS PROPS
+    console.log(
+      `🎬 [PrimaryContent] PROPS RECEBIDOS: isReady=${isReady}, isStarted=${isStarted} (${typeof isStarted})`
+    )
+
+    // ✅ CONTROLE SUPER RIGOROSO: só anima quando REALMENTE started
     useEffect(() => {
-      function shouldStartCastleAnimations() {
-        return window.shouldStartAnimations === true
+      console.log(
+        `🎬 [PrimaryContent] useEffect triggered - isStarted=${isStarted} (${typeof isStarted})`
+      )
+
+      // ✅ RESETAR estado se não estiver started (inclui undefined)
+      if (!isStarted) {
+        console.log(
+          "🛑 [PrimaryContent] NÃO STARTED - parando/resetando animações"
+        )
+
+        if (animationStartedRef.current && typeof gsap !== "undefined") {
+          gsap.killTweensOf(groundParams.current)
+          console.log("🛑 [PrimaryContent] GSAP killTweensOf - animação parada")
+        }
+
+        // Reset para valores iniciais
+        groundParams.current.radius = 110
+        groundParams.current.scale = 100
+        groundParams.current.height = 5
+        animationStartedRef.current = false
+        setForceUpdate(prev => prev + 1)
+        return
       }
 
-      function startAnimations() {
+      // ✅ SÓ INICIA se started E ainda não iniciou
+      if (isStarted === true && !animationStartedRef.current) {
+        console.log(
+          "✅ [PrimaryContent] STARTED = true - INICIANDO animações GSAP"
+        )
+        animationStartedRef.current = true
+
         if (typeof gsap !== "undefined") {
           gsap.to(groundParams.current, {
             radius: 13,
@@ -214,26 +254,22 @@ const PrimaryContent = React.memo(
             onUpdate: () => {
               setForceUpdate(prev => prev + 1)
             },
+            onComplete: () => {
+              console.log("✅ [PrimaryContent] Animação GSAP completa")
+            },
           })
         }
       }
+    }, [isStarted])
 
-      if (isReady && shouldStartCastleAnimations()) {
-        startAnimations()
-      } else if (isReady) {
-        const handleStartAnimations = () => {
-          startAnimations()
-        }
-
-        window.addEventListener("startAnimations", handleStartAnimations)
-        return () => {
-          window.removeEventListener("startAnimations", handleStartAnimations)
-        }
-      }
-    }, [isReady])
+    // ✅ LOG para debug
+    console.log(
+      `🎬 [PrimaryContent] STATUS: isStarted=${isStarted}, animationStarted=${animationStartedRef.current}, radius=${groundParams.current.radius}`
+    )
 
     return (
       <>
+        {/* ✅ Environment carrega imediatamente - importante para useProgress */}
         <Environment
           files="/images/CloudsBG.hdr"
           background
@@ -264,6 +300,7 @@ const PrimaryContent = React.memo(
           castShadow={false}
           receiveShadow={false}
         />
+        {/* ✅ Todos os modelos carregam imediatamente para serem detectados pelo useProgress */}
         <Castle
           activeSection={activeSection}
           onSectionChange={onSectionChange}
@@ -282,14 +319,14 @@ const PrimaryContent = React.memo(
   }
 )
 
-const SecondaryContent = React.memo(({ isReady }) => {
+// ✅ SECONDARY CONTENT - RENDERIZA SEMPRE, ANIMA QUANDO APROPRIADO
+
+const SecondaryContent = React.memo(() => {
   const cloudGroupRef = useRef()
   const { camera } = useThree()
   const isMobile = useMobileDetection()
 
   useFrame(() => {
-    if (!isReady || !window.shouldStartAnimations) return
-
     const castleCenter = new THREE.Vector3(0, 0, 0)
     const distance = camera.position.distanceTo(castleCenter)
 
@@ -489,33 +526,57 @@ const SecondaryContent = React.memo(({ isReady }) => {
   )
 })
 
-const TertiaryContent = React.memo(() => <MirrorIframe />)
-
+// ✅ SCENE CONTENT - EVITAR PRELOAD DUPLO E CONTROLAR ANIMAÇÕES
 const SceneContent = React.memo(
-  ({ activeSection, onSectionChange, isReady }) => {
+  ({ activeSection, onSectionChange, isReady, isStarted }) => {
+    useEffect(() => {
+      // ✅ Só faz preload se não veio de LoadingPage
+      if (!window.glbAssetsPreloaded) {
+        console.log("🔄 [SceneContent] Forçando preload de assets...")
+
+        useGLTF.preload("/models/Castle.glb")
+        useGLTF.preload("/models/Flower.glb")
+        useGLTF.preload("/models/stairs.glb")
+        useGLTF.preload("/models/Orb.glb")
+        useGLTF.preload("/models/Pole.glb")
+
+        window.glbAssetsPreloaded = true
+        console.log("✅ [SceneContent] Preload iniciado")
+      } else {
+        console.log("⏭️ [SceneContent] GLBs já pré-carregados")
+      }
+    }, [])
+
     return (
       <>
         <PrimaryContent
           activeSection={activeSection}
           onSectionChange={onSectionChange}
           isReady={isReady}
+          isStarted={isStarted} // ✅ PASSAR isStarted
         />
-        <SecondaryContent isReady={isReady} />
-        <TertiaryContent />
+        <SecondaryContent
+          isReady={isReady}
+          isStarted={isStarted} // ✅ PASSAR isStarted
+        />
       </>
     )
   }
 )
 
-const Experience = ({ initiallyReady = false }) => {
+// ✅ EXPERIENCE PRINCIPAL - VERSÃO LIMPA
+const Experience = ({ initiallyReady = false, isStarted = false }) => {
+  console.log(`🎮 [Experience] Ready: ${initiallyReady}, Started: ${isStarted}`)
+
   const [currentSection, setCurrentSection] = useState(0)
   const [activeSection, setActiveSection] = useState("intro")
-  const [isReady, setIsReady] = useState(initiallyReady)
   const cameraRef = useRef(null)
+  const isInitialized = useRef(false)
 
   const isMobile = useMobileDetection()
   const canvasConfig = getCanvasConfig(isMobile)
 
+  // ✅ HANDLERS ESTÁVEIS
   const handleSectionChange = useCallback((index, sectionName) => {
     setCurrentSection(index)
     setActiveSection(sectionName)
@@ -529,7 +590,13 @@ const Experience = ({ initiallyReady = false }) => {
     }
   }, [])
 
+  // ✅ INICIALIZAÇÃO ÚNICA
   useEffect(() => {
+    if (isInitialized.current) return
+    isInitialized.current = true
+
+    console.log("🎮 [Experience] Inicialização única - precarregando assets")
+
     window.customCameraNavigation = handleCustomCameraPosition
     window.onSectionChange = handleSectionChange
 
@@ -540,16 +607,6 @@ const Experience = ({ initiallyReady = false }) => {
     }
 
     window.addEventListener("sectionChange", handleSectionChangeEvent)
-
-    if (initiallyReady && !isReady) {
-      setIsReady(true)
-
-      if (window.audioManager && window.audioManager.startAmbient) {
-        setTimeout(() => {
-          window.audioManager.startAmbient()
-        }, 100)
-      }
-    }
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -566,16 +623,31 @@ const Experience = ({ initiallyReady = false }) => {
     document.addEventListener("visibilitychange", handleVisibilityChange)
 
     return () => {
+      console.log("🎮 [Experience] Cleanup único")
       window.removeEventListener("sectionChange", handleSectionChangeEvent)
       document.removeEventListener("visibilitychange", handleVisibilityChange)
       delete window.customCameraNavigation
       delete window.onSectionChange
+    }
+  }, [handleSectionChange, handleCustomCameraPosition])
 
-      if (window.audioManager && window.audioManager.stopAmbient) {
-        window.audioManager.stopAmbient()
+  // ✅ ÁUDIO - só ativar quando started (SEM DELAYS)
+  useEffect(() => {
+    if (isStarted) {
+      console.log("🎵 [Experience] Iniciando áudio IMEDIATAMENTE...")
+
+      // ✅ SEM setTimeout - direto
+      if (window.audioManager && window.audioManager.startAmbient) {
+        window.audioManager.startAmbient()
+      }
+
+      return () => {
+        if (window.audioManager && window.audioManager.stopAmbient) {
+          window.audioManager.stopAmbient()
+        }
       }
     }
-  }, [handleSectionChange, handleCustomCameraPosition, initiallyReady, isReady])
+  }, [isStarted])
 
   return (
     <div className="relative w-full h-screen">
@@ -585,7 +657,7 @@ const Experience = ({ initiallyReady = false }) => {
           <SceneContent
             activeSection={activeSection}
             onSectionChange={handleSectionChange}
-            isReady={isReady}
+            isReady={true} // ✅ SEMPRE true para carregar assets
           />
         </Canvas>
       </div>
@@ -600,6 +672,7 @@ const Experience = ({ initiallyReady = false }) => {
           />
         </div>
       </div>
+
       <div className="fixed bottom-4 right-4 z-20">
         <AudioControl />
       </div>

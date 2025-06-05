@@ -4,99 +4,71 @@ import * as THREE from "three"
 import {
   Color,
   DoubleSide,
-  LinearFilter,
   MeshBasicMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   NearestFilter,
   NormalBlending,
 } from "three"
+import {
+  useSharedEnvironmentMaps,
+  useBg1Environment,
+  useStudioEnvironment,
+  useCloudsEnvironment,
+} from "./useSharedEnvironmentMaps"
 
-// OTIMIZAÇÃO: Carregamento consolidado de todas as texturas do castelo em um só hook
 const useCastleTextures = () => {
   return useTexture({
-    // Castle Main
     castleColor: "/texture/castleColor.avif",
     castleRoughness: "/texture/castleRoughnessV1.avif",
     castleMetallic: "/texture/castleMetallicV1.avif",
-
-    // Castle Heart
     castleHeartColor: "/texture/castleHeart_Base_colorAO.avif",
     castleLightsEmissive: "/texture/castleLights_Emissive.avif",
-
-    // Gods Wall
     godsWallColor: "/texture/GodsWallColor.avif",
     godsWallRoughness: "/texture/castleGodsWall_Roughness.avif",
-
-    // Castle Walls
     wallsColor: "/texture/WallsColor.avif",
     floorRoughness: "/texture/floor_Roughness.avif",
-
-    // Pilars
     pilarsColor: "/texture/PilarsColor.avif",
     pilarsRoughness: "/texture/castlePilars_Roughness.avif",
     pilarsMetallic: "/texture/castlePilars_Metallic.avif",
     pilarsEmissive: "/texture/castlePilars_Emissive.avif",
-
-    // Floor
     floorAO: "/texture/floorAO.avif",
     floorHeartMetallic: "/texture/floorHeart_Metallic.avif",
     floorHeartColor: "/texture/floorHeartColor.avif",
     floorHeartRoughness: "/texture/floorHeart_Roughness.avif",
     floorHeartEmissive: "/texture/floorHeart_Emissive.avif",
-
-    // Wings
     wingsColor: "/texture/wingsColor_.avif",
     wingsRoughness: "/texture/wingsRoughness.avif",
-
-    // Gods
     godsColorAO: "/texture/godsColorAO.avif",
-
-    // Hoof
     hoofGlassColor: "/texture/hoofGlassColorBAO.avif",
     hoofGlassEmissive: "/texture/hoofGlassEmissiveV2.avif",
-
-    // ATM
     atmBake: "/texture/atmBake1.avif",
     atmMetallic: "/texture/atmMetallicV1.avif",
     atmEmissive: "/texture/atmEmissive.avif",
-
-    // Scroll
     scrollColor: "/texture/ScrollColorV1.avif",
   })
 }
 
-// OTIMIZAÇÃO: Environment maps consolidados
-const useEnvironmentMaps = () => {
-  return useTexture({
-    bg1: "/images/bg1.jpg",
-    studio: "/images/studio.jpg",
-    clouds: "/images/clouds.jpg",
+const configureTextures = (textures, flipY = true) => {
+  Object.values(textures).forEach(texture => {
+    if (texture) {
+      texture.flipY = flipY
+      texture.minFilter = texture.magFilter = NearestFilter
+    }
   })
 }
 
-// Castle Main Material
 export const useCastleMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    // Configure castle textures
-    ;[
-      textures.castleColor,
-      textures.castleRoughness,
-      textures.castleMetallic,
-    ].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      castleColor: textures.castleColor,
+      castleRoughness: textures.castleRoughness,
+      castleMetallic: textures.castleMetallic,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(() => {
     return new MeshStandardMaterial({
@@ -106,15 +78,14 @@ export const useCastleMaterial = () => {
       roughness: 0.2,
       metalness: 0,
       blending: NormalBlending,
-      envMap: envMaps.bg1,
+      envMap: bg1Env,
       envMapIntensity: 1,
       side: DoubleSide,
       transparent: false,
     })
-  }, [textures, envMaps])
+  }, [textures, bg1Env])
 }
 
-// Heart Back Wall Material
 export const useCastleHeartMaterial = (
   metalness = 1.1,
   roughness = 0,
@@ -122,19 +93,11 @@ export const useCastleHeartMaterial = (
   emissiveColor = "#ff0000"
 ) => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    if (textures.castleHeartColor) {
-      textures.castleHeartColor.flipY = true
-      textures.castleHeartColor.minFilter =
-        textures.castleHeartColor.magFilter = NearestFilter
-    }
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+    configureTextures({ castleHeartColor: textures.castleHeartColor })
+  }, [textures])
 
   return useMemo(() => {
     return new MeshStandardMaterial({
@@ -147,27 +110,13 @@ export const useCastleHeartMaterial = (
       emissive: new Color(emissiveColor),
       emissiveIntensity: emissiveIntensity,
       blending: NormalBlending,
-      envMap: envMaps.bg1,
+      envMap: bg1Env,
     })
-  }, [
-    textures,
-    metalness,
-    roughness,
-    emissiveIntensity,
-    emissiveColor,
-    envMaps,
-  ])
+  }, [textures, metalness, roughness, emissiveIntensity, emissiveColor, bg1Env])
 }
 
-// Castle Heart Mask Material
 export const useCastleHeartMaskMaterial = () => {
-  const envMaps = useEnvironmentMaps()
-
-  useEffect(() => {
-    if (envMaps.studio) {
-      envMaps.studio.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [envMaps])
+  const studioEnv = useStudioEnvironment()
 
   return useMemo(
     () =>
@@ -179,16 +128,15 @@ export const useCastleHeartMaskMaterial = () => {
         blending: NormalBlending,
         roughness: 0.2,
         metalness: 1.5,
-        envMap: envMaps.studio,
+        envMap: studioEnv,
         envMapIntensity: 1.5,
         emissive: new Color("#F0D060"),
         emissiveIntensity: 0.3,
       }),
-    [envMaps]
+    [studioEnv]
   )
 }
 
-// Heart Lights Material
 export const useCastleLightsMaterial = () => {
   const textures = useCastleTextures()
 
@@ -204,27 +152,20 @@ export const useCastleLightsMaterial = () => {
   )
 }
 
-// Gods Walls Material
 export const usecastleGodsWallsMaterial = (
   materialType = "standard",
   metalness = 0.6,
   roughness = 1.6
 ) => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[textures.godsWallColor, textures.godsWallRoughness].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      godsWallColor: textures.godsWallColor,
+      godsWallRoughness: textures.godsWallRoughness,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(() => {
     const commonProps = {
@@ -239,7 +180,7 @@ export const usecastleGodsWallsMaterial = (
       roughness: roughness,
       metalness: metalness,
       blending: NormalBlending,
-      envMap: envMaps.bg1,
+      envMap: bg1Env,
       envMapIntensity: 2.5,
     }
 
@@ -255,26 +196,19 @@ export const usecastleGodsWallsMaterial = (
       default:
         return new MeshStandardMaterial(pbrProps)
     }
-  }, [textures, materialType, metalness, roughness, envMaps])
+  }, [textures, materialType, metalness, roughness, bg1Env])
 }
 
-// Castle Walls Material
-export const useCastleWallsMaterial = (metalness = 0, roughness = 1) => {
+export const useCastleWallsMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[textures.wallsColor, textures.floorRoughness].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      wallsColor: textures.wallsColor,
+      floorRoughness: textures.floorRoughness,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(() => {
     return new MeshStandardMaterial({
@@ -282,37 +216,27 @@ export const useCastleWallsMaterial = (metalness = 0, roughness = 1) => {
       roughnessMap: textures.floorRoughness,
       roughness: 0.2,
       blending: NormalBlending,
-      envMap: envMaps.bg1,
+      envMap: bg1Env,
       envMapIntensity: 1,
       side: DoubleSide,
       transparent: false,
       alphaTest: 0.05,
     })
-  }, [textures, envMaps])
+  }, [textures, bg1Env])
 }
 
-// Castle Pilars Material
-export const useCastlePilarsMaterial = (metalness = 0, roughness = 1) => {
+export const useCastlePilarsMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[
-      textures.pilarsColor,
-      textures.pilarsRoughness,
-      textures.pilarsMetallic,
-      textures.pilarsEmissive,
-    ].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      pilarsColor: textures.pilarsColor,
+      pilarsRoughness: textures.pilarsRoughness,
+      pilarsMetallic: textures.pilarsMetallic,
+      pilarsEmissive: textures.pilarsEmissive,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(() => {
     return new MeshStandardMaterial({
@@ -322,39 +246,29 @@ export const useCastlePilarsMaterial = (metalness = 0, roughness = 1) => {
       emissiveMap: textures.pilarsEmissive,
       emissive: new Color(0xe8b84e),
       emissiveIntensity: 2.5,
-      roughness: roughness,
-      metalness: metalness,
+      roughness: 1,
+      metalness: 0,
       blending: NormalBlending,
-      envMap: envMaps.bg1,
+      envMap: bg1Env,
       envMapIntensity: 1.0,
       side: DoubleSide,
       transparent: false,
       alphaTest: 0.05,
     })
-  }, [textures, envMaps])
+  }, [textures, bg1Env])
 }
 
-// Floor Material
-export const useFloorMaterial = (metalness = 0, roughness = 1) => {
+export const useFloorMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[
-      textures.floorAO,
-      textures.floorRoughness,
-      textures.floorHeartMetallic,
-    ].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      floorAO: textures.floorAO,
+      floorRoughness: textures.floorRoughness,
+      floorHeartMetallic: textures.floorHeartMetallic,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(() => {
     return new MeshStandardMaterial({
@@ -364,24 +278,17 @@ export const useFloorMaterial = (metalness = 0, roughness = 1) => {
       roughness: 0.2,
       metalness: 1.3,
       blending: NormalBlending,
-      envMap: envMaps.bg1,
+      envMap: bg1Env,
       envMapIntensity: 1,
       side: DoubleSide,
       transparent: false,
       alphaTest: 0.05,
     })
-  }, [textures, envMaps])
+  }, [textures, bg1Env])
 }
 
-// Mirror Frame Material
 export const useMirrorFrameMaterial = () => {
-  const envMaps = useEnvironmentMaps()
-
-  useEffect(() => {
-    if (envMaps.studio) {
-      envMaps.studio.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [envMaps])
+  const studioEnv = useStudioEnvironment()
 
   return useMemo(
     () =>
@@ -393,37 +300,27 @@ export const useMirrorFrameMaterial = () => {
         blending: THREE.NormalBlending,
         roughness: 0,
         metalness: 1,
-        envMap: envMaps.studio,
+        envMap: studioEnv,
         envMapIntensity: 2.2,
         emissive: new THREE.Color("#F0D060"),
         emissiveIntensity: 0.1,
       }),
-    [envMaps]
+    [studioEnv]
   )
 }
 
-// Floor Heart Material
 export const useFloorHeartMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[
-      textures.floorHeartColor,
-      textures.floorHeartRoughness,
-      textures.floorHeartMetallic,
-      textures.floorHeartEmissive,
-    ].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      floorHeartColor: textures.floorHeartColor,
+      floorHeartRoughness: textures.floorHeartRoughness,
+      floorHeartMetallic: textures.floorHeartMetallic,
+      floorHeartEmissive: textures.floorHeartEmissive,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(() => {
     return new MeshPhysicalMaterial({
@@ -439,30 +336,23 @@ export const useFloorHeartMaterial = () => {
       emissiveIntensity: 5,
       transparent: false,
       blending: NormalBlending,
-      envMap: envMaps.bg1,
+      envMap: bg1Env,
       envMapIntensity: 1.0,
       iridescence: 0.0,
     })
-  }, [textures, envMaps])
+  }, [textures, bg1Env])
 }
 
-// Wings Material
 export const useWingsMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[textures.wingsColor, textures.wingsRoughness].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      wingsColor: textures.wingsColor,
+      wingsRoughness: textures.wingsRoughness,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(
     () =>
@@ -471,25 +361,18 @@ export const useWingsMaterial = () => {
         roughnessMap: textures.wingsRoughness,
         roughness: 0.2,
         blending: NormalBlending,
-        envMap: envMaps.bg1,
+        envMap: bg1Env,
         envMapIntensity: 1,
         side: DoubleSide,
         transparent: false,
         alphaTest: 0.05,
       }),
-    [textures, envMaps]
+    [textures, bg1Env]
   )
 }
 
-// Logo Material
 export const useLogoMaterial = () => {
-  const envMaps = useEnvironmentMaps()
-
-  useEffect(() => {
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [envMaps])
+  const bg1Env = useBg1Environment()
 
   return useMemo(
     () =>
@@ -501,22 +384,15 @@ export const useLogoMaterial = () => {
         blending: NormalBlending,
         roughness: 0.3,
         metalness: 1.3,
-        envMap: envMaps.bg1,
+        envMap: bg1Env,
         envMapIntensity: 1.2,
       }),
-    [envMaps]
+    [bg1Env]
   )
 }
 
-// Decor Material
 export const useDecorMaterial = () => {
-  const envMaps = useEnvironmentMaps()
-
-  useEffect(() => {
-    if (envMaps.studio) {
-      envMaps.studio.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [envMaps])
+  const studioEnv = useStudioEnvironment()
 
   return useMemo(
     () =>
@@ -528,22 +404,15 @@ export const useDecorMaterial = () => {
         blending: NormalBlending,
         roughness: 0,
         metalness: 1.3,
-        envMap: envMaps.studio,
+        envMap: studioEnv,
         envMapIntensity: 2.5,
       }),
-    [envMaps]
+    [studioEnv]
   )
 }
 
-// Bow Material
 export const useBowMaterial = () => {
-  const envMaps = useEnvironmentMaps()
-
-  useEffect(() => {
-    if (envMaps.studio) {
-      envMaps.studio.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [envMaps])
+  const studioEnv = useStudioEnvironment()
 
   return useMemo(
     () =>
@@ -555,22 +424,15 @@ export const useBowMaterial = () => {
         blending: NormalBlending,
         roughness: 0,
         metalness: 1.2,
-        envMap: envMaps.studio,
+        envMap: studioEnv,
         envMapIntensity: 1.8,
       }),
-    [envMaps]
+    [studioEnv]
   )
 }
 
-// Mirror Material
 export const useMirrorMaterial = () => {
-  const envMaps = useEnvironmentMaps()
-
-  useEffect(() => {
-    if (envMaps.clouds) {
-      envMaps.clouds.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [envMaps])
+  const cloudsEnv = useCloudsEnvironment()
 
   return useMemo(
     () =>
@@ -582,22 +444,15 @@ export const useMirrorMaterial = () => {
         blending: NormalBlending,
         roughness: 0,
         metalness: 1,
-        envMap: envMaps.clouds,
+        envMap: cloudsEnv,
         envMapIntensity: 2.0,
       }),
-    [envMaps]
+    [cloudsEnv]
   )
 }
 
-// Hallos Material
 export const useHallosMaterial = () => {
-  const envMaps = useEnvironmentMaps()
-
-  useEffect(() => {
-    if (envMaps.studio) {
-      envMaps.studio.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [envMaps])
+  const studioEnv = useStudioEnvironment()
 
   return useMemo(
     () =>
@@ -609,17 +464,16 @@ export const useHallosMaterial = () => {
         blending: THREE.NormalBlending,
         roughness: 0.2,
         metalness: 2,
-        envMap: envMaps.studio,
+        envMap: studioEnv,
         envMapIntensity: 2.5,
         reflectivity: 0,
         emissive: new THREE.Color("#DABB46").multiplyScalar(0.1),
         emissiveIntensity: 2,
       }),
-    [envMaps]
+    [studioEnv]
   )
 }
 
-// Gods Material
 export const useGodsMaterial = () => {
   const textures = useCastleTextures()
 
@@ -645,23 +499,16 @@ export const useGodsMaterial = () => {
   )
 }
 
-// Hoof Material
 export const useHoofMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[textures.hoofGlassColor, textures.hoofGlassEmissive].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      hoofGlassColor: textures.hoofGlassColor,
+      hoofGlassEmissive: textures.hoofGlassEmissive,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(
     () =>
@@ -675,33 +522,25 @@ export const useHoofMaterial = () => {
         blending: NormalBlending,
         roughness: 0.2,
         metalness: 1,
-        envMap: envMaps.bg1,
+        envMap: bg1Env,
         envMapIntensity: 1.0,
         reflectivity: 0.5,
       }),
-    [textures, envMaps]
+    [textures, bg1Env]
   )
 }
 
-// ATM Material
 export const useAtmMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[textures.atmBake, textures.atmMetallic, textures.atmEmissive].forEach(
-      texture => {
-        if (texture) {
-          texture.flipY = true
-          texture.minFilter = texture.magFilter = NearestFilter
-        }
-      }
-    )
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+    configureTextures({
+      atmBake: textures.atmBake,
+      atmMetallic: textures.atmMetallic,
+      atmEmissive: textures.atmEmissive,
+    })
+  }, [textures])
 
   return useMemo(
     () =>
@@ -716,30 +555,23 @@ export const useAtmMaterial = () => {
         roughness: 0.5,
         emissive: new Color(0xc4627d),
         emissiveIntensity: -0.5,
-        envMap: envMaps.bg1,
+        envMap: bg1Env,
         envMapIntensity: 0.8,
       }),
-    [textures, envMaps]
+    [textures, bg1Env]
   )
 }
 
-// ATM Metal Material
 export const useAtmMetalMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
 
   useMemo(() => {
-    ;[textures.atmBake, textures.atmEmissive].forEach(texture => {
-      if (texture) {
-        texture.flipY = true
-        texture.minFilter = texture.magFilter = NearestFilter
-      }
+    configureTextures({
+      atmBake: textures.atmBake,
+      atmEmissive: textures.atmEmissive,
     })
-
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [textures, envMaps])
+  }, [textures])
 
   return useMemo(
     () =>
@@ -754,24 +586,17 @@ export const useAtmMetalMaterial = () => {
         roughness: 0.05,
         emissive: new Color(0xc4627d),
         emissiveIntensity: 7.5,
-        envMap: envMaps.bg1,
+        envMap: bg1Env,
         envMapIntensity: 1.5,
       }),
-    [textures, envMaps]
+    [textures, bg1Env]
   )
 }
 
-// Scroll Material
 export const useScrollMaterial = () => {
   const textures = useCastleTextures()
-  const envMaps = useEnvironmentMaps()
+  const bg1Env = useBg1Environment()
   const [hasError, setHasError] = useState(false)
-
-  useEffect(() => {
-    if (envMaps.bg1) {
-      envMaps.bg1.mapping = THREE.EquirectangularReflectionMapping
-    }
-  }, [envMaps])
 
   useEffect(() => {
     if (!textures.scrollColor || textures.scrollColor.image === undefined) {
@@ -787,10 +612,10 @@ export const useScrollMaterial = () => {
           roughness: 0.7,
           metalness: 0.0,
           side: DoubleSide,
-          envMap: envMaps.bg1,
+          envMap: bg1Env,
           envMapIntensity: 0.3,
         }),
-      [envMaps]
+      [bg1Env]
     )
   }
 
@@ -801,9 +626,9 @@ export const useScrollMaterial = () => {
         roughness: 0.7,
         metalness: 0,
         side: DoubleSide,
-        envMap: envMaps.bg1,
+        envMap: bg1Env,
         envMapIntensity: 0.8,
       }),
-    [textures, envMaps]
+    [textures, bg1Env]
   )
 }
