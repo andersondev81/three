@@ -211,10 +211,10 @@ const SceneController = React.memo(({ section, cameraRef, isStarted }) => {
   )
 })
 
-// ✅ PRIMARY CONTENT - CORREÇÃO FINAL: Forçar re-render do Environment
+// ✅ PRIMARY CONTENT - VERSÃO FINAL LIMPA
 const PrimaryContent = React.memo(
   ({ activeSection, onSectionChange, isReady, isStarted }) => {
-    // ✅ MUDANÇA: Usar useState em vez de useRef para forçar re-renders
+    // ✅ Estado para animação suave com re-render
     const [groundParams, setGroundParams] = useState({
       height: 5,
       radius: 130,
@@ -235,18 +235,10 @@ const PrimaryContent = React.memo(
 
     const hasAnimatedRef = useRef(false)
 
-    // ✅ Console.log só quando isStarted mudar
-    useEffect(() => {
-      console.log(
-        `🎬 [PrimaryContent] isStarted: ${isStarted}, hasAnimated: ${hasAnimatedRef.current}`
-      )
-    }, [isStarted])
-
     // ✅ CONTROLE DE INÍCIO DA ANIMAÇÃO
     useEffect(() => {
       // ✅ Resetar se não estiver started
       if (!isStarted) {
-        console.log("🔄 [PrimaryContent] Resetando para estado inicial")
         hasAnimatedRef.current = false
         animationState.current.isAnimating = false
         setGroundParams({
@@ -259,16 +251,9 @@ const PrimaryContent = React.memo(
 
       // ✅ Só animar se started E ainda não animou
       if (isStarted && !hasAnimatedRef.current) {
-        console.log(
-          "🎬 [PrimaryContent] INICIANDO animação useFrame - isStarted:",
-          isStarted
-        )
         hasAnimatedRef.current = true
 
         setTimeout(() => {
-          console.log(
-            "🚀 [PrimaryContent] TIMEOUT EXECUTADO - configurando animação"
-          )
           animationState.current = {
             ...animationState.current,
             isAnimating: true,
@@ -276,19 +261,18 @@ const PrimaryContent = React.memo(
             startRadius: groundParams.radius,
             startScale: groundParams.scale,
           }
-          console.log("🎬 [PrimaryContent] Delay completo - iniciando animação")
         }, animationState.current.delay)
       }
     }, [isStarted, groundParams.radius, groundParams.scale])
 
-    // ✅ ANIMAÇÃO SUAVE COM useFrame + setState
+    // ✅ ANIMAÇÃO SUAVE COM useFrame
     useFrame(() => {
       if (!animationState.current.isAnimating) return
 
       const elapsed = performance.now() - animationState.current.startTime
       const progress = Math.min(elapsed / animationState.current.duration, 1)
 
-      // ✅ Easing function
+      // ✅ Easing function (sine.inOut)
       const easeInOut = t => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t)
       const easedProgress = easeInOut(progress)
 
@@ -300,21 +284,12 @@ const PrimaryContent = React.memo(
         startRadius + (targetRadius - startRadius) * easedProgress
       const newScale = startScale + (targetScale - startScale) * easedProgress
 
-      // ✅ MUDANÇA: Usar setState para forçar re-render
+      // ✅ Atualizar state para forçar re-render
       setGroundParams(prev => ({
         ...prev,
         radius: newRadius,
         scale: newScale,
       }))
-
-      // ✅ Debug a cada 10%
-      if (Math.floor(progress * 10) !== Math.floor((progress - 0.01) * 10)) {
-        console.log(
-          `📈 [PrimaryContent] Progresso: ${Math.round(
-            progress * 100
-          )}% - Radius: ${newRadius.toFixed(1)}`
-        )
-      }
 
       // ✅ Animação completa
       if (progress >= 1) {
@@ -324,16 +299,12 @@ const PrimaryContent = React.memo(
           radius: targetRadius,
           scale: targetScale,
         }))
-        console.log(
-          "✅ [PrimaryContent] Animação useFrame completa - radius final:",
-          targetRadius
-        )
       }
     })
 
     return (
       <>
-        {/* ✅ Environment agora recebe state que força re-render */}
+        {/* ✅ Environment com animação suave */}
         <Environment
           files="/images/CloudsBG.hdr"
           background
@@ -368,6 +339,7 @@ const PrimaryContent = React.memo(
           activeSection={activeSection}
           onSectionChange={onSectionChange}
           scale={[2, 1.6, 2]}
+          isStarted={isStarted}
         />
         <Flower />
         <Stairs />
