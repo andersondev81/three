@@ -1,17 +1,15 @@
-// Flower.jsx - Optimized for both mobile and desktop with alpha support
 import React, { useMemo } from "react"
 import { useGLTF, useTexture } from "@react-three/drei"
 import {
   MeshStandardMaterial,
   NearestFilter,
   DoubleSide,
-  EquirectangularReflectionMapping,
   Vector2,
   TangentSpaceNormalMap,
 } from "three"
 import { useThree } from "@react-three/fiber"
+import { useStudioEnvironment } from "../../utils/useSharedEnvironmentMaps"
 
-// Custom mobile detection hook
 const useMobileDetection = () => {
   const { size } = useThree()
   return size.width < 768 || /Mobi|Android/i.test(navigator.userAgent)
@@ -20,18 +18,16 @@ const useMobileDetection = () => {
 export function Flower(props) {
   const { nodes } = useGLTF("/models/Flower.glb")
   const isMobile = useMobileDetection()
+  const studioEnv = useStudioEnvironment()
 
-  // Texture configuration based on device type
   const textures = useTexture({
     diffuse: "/texture/FlowersColor.avif",
-    alpha: "/texture/Flowers_Alpha.avif", // Always load alpha for both mobile and desktop
+    alpha: "/texture/Flowers_Alpha.avif",
     ...(!isMobile && {
-      normal: "/texture/Flowers_Normal.avif", // Only load normal map for desktop
+      normal: "/texture/Flowers_Normal.avif",
     }),
-    env: "/images/studio.jpg",
   })
 
-  // Texture optimization
   useMemo(() => {
     Object.values(textures).forEach(texture => {
       if (texture) {
@@ -40,26 +36,21 @@ export function Flower(props) {
         texture.magFilter = NearestFilter
       }
     })
-    if (textures.env) {
-      textures.env.mapping = EquirectangularReflectionMapping
-    }
   }, [textures])
 
-  // Material configuration with alpha support for both platforms
   const material = useMemo(() => {
     const baseConfig = {
       map: textures.diffuse,
       alphaMap: textures.alpha,
       transparent: true,
-      alphaTest: isMobile ? 0.1 : 0.2, // Slightly more aggressive alpha test on mobile
+      alphaTest: isMobile ? 0.1 : 0.2,
       side: DoubleSide,
-      envMap: textures.env,
+      envMap: studioEnv,
       envMapIntensity: isMobile ? 0.8 : 1.4,
       roughness: isMobile ? 1.2 : 1,
       metalness: isMobile ? 0.8 : 1.2,
     }
 
-    // Add normal mapping only for desktop
     if (!isMobile && textures.normal) {
       baseConfig.normalMap = textures.normal
       baseConfig.normalScale = new Vector2(2, 2)
@@ -67,9 +58,8 @@ export function Flower(props) {
     }
 
     return new MeshStandardMaterial(baseConfig)
-  }, [textures, isMobile])
+  }, [textures, isMobile, studioEnv])
 
-  // Safe rendering
   if (!nodes?.flowers?.geometry) {
     console.warn("Flower model not loaded yet")
     return null
@@ -81,7 +71,7 @@ export function Flower(props) {
         <mesh
           geometry={nodes.flowers.geometry}
           material={material}
-          frustumCulled={false} // Improve rendering for small elements
+          frustumCulled={false}
         />
       </group>
     </group>
